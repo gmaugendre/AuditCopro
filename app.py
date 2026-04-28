@@ -20,12 +20,12 @@ if uploaded_file is not None:
     st.info(f"Fichier '{uploaded_file.name}' reçu. Analyse en cours...")
     
     # 3. Appel à l'IA
-    # On utilise gemini-1.5-flash qui est très stable
+    # On utilise gemini-2.5-flash qui est très stable
     try:
         with st.spinner('L\'IA analyse la question...'):
             prompt = "Est-ce que la comptabilité est importante dans les copropriétés ?"
             response = client.models.generate_content(
-                model="gemini-1.5-flash", 
+                model="gemini-2.5-flash", 
                 contents=prompt
             )
             reponse_ia = response.text
