@@ -25,7 +25,7 @@ if uploaded_file is not None:
         try:
             question = "Est-ce que la comptabilité est importante dans les copropriétés ?"
             response = client.models.generate_content(
-                model="gemini-2.0-flash", 
+                model="gemini-1.5-flash", 
                 contents=question
             )
             reponse_ia = response.text
