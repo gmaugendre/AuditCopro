@@ -53,7 +53,7 @@ if uploaded_file is not None:
             if isinstance(pdf_output, str):
                 pdf_bytes = pdf_output.encode('latin-1')
             else:
-                pdf_bytes = pdf_output
+                pdf_bytes = bytes(pdf_output)
                 
             st.download_button(
                 label="📥 Télécharger le rapport PDF",
