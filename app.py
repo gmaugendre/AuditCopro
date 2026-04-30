@@ -3,6 +3,8 @@ from fpdf import FPDF
 from google import genai
 import re
 
+"""
+
 # 1. Initialisation du client IA
 # Assurez-vous que GEMINI_API_KEY est bien dans vos "Secrets" sur Streamlit Cloud
 try:
@@ -11,7 +13,7 @@ except Exception as e:
     st.error("🔑 Erreur : La clé API n'est pas configurée dans les Secrets.")
 
 st.set_page_config(page_title="Audit Copro", page_icon="📄")
-st.title("🛡️ Audit des comptes avec Gemini")
+st.title("Audit des comptes")
 
 # 2. Zone de chargement du fichier
 uploaded_file = st.file_uploader("Uploadez le grand livre (PDF)", type="pdf")
@@ -68,3 +70,81 @@ if uploaded_file is not None:
     st.markdown("---")
     st.markdown("### Aperçu de l'analyse :")
     st.write(reponse_ia)
+
+    """
+
+
+import streamlit as st
+import os
+import tempfile
+import time
+import pandas as pd
+
+# --- CONFIGURATION DE LA PAGE ---
+st.set_page_config(page_title="Test Temp Storage", layout="wide")
+
+st.title("🧪 Test d'Upload et Stockage Temporaire")
+st.write("Ce script stocke physiquement les fichiers, simule un traitement, puis les supprime.")
+
+# --- ZONE D'UPLOAD ---
+uploaded_files = st.file_uploader(
+    "Chargez exactement 3 fichiers PDF ou CSV", 
+    accept_multiple_files=True
+)
+
+# --- LOGIQUE PRINCIPALE ---
+if uploaded_files:
+    if len(uploaded_files) == 3:
+        if st.button("Lancer le cycle complet"):
+            
+            # 1. Création du dossier temporaire
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                st.info(f"📂 Dossier temporaire créé : `{tmpdirname}`")
+                
+                chemins_locaux = []
+
+                # 2. Sauvegarde des fichiers sur le "disque"
+                for uploaded_file in uploaded_files:
+                    path = os.path.join(tmpdirname, uploaded_file.name)
+                    with open(path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    chemins_locaux.append(path)
+                    st.success(f"✅ Fichier écrit : `{uploaded_file.name}`")
+
+                st.divider()
+                st.subheader("⚙️ Simulation du traitement (ex: Gemini)")
+                
+                # Barres de progression pour le test
+                progress_bar = st.progress(0)
+                
+                for i, path in enumerate(chemins_locaux):
+                    # --- C'est ici que tu mettrais ton code Gemini ---
+                    # ex: result = mon_extraction_gemini(path)
+                    st.write(f"Analyse en cours de : `{os.path.basename(path)}`...")
+                    
+                    # Simulation de lecture avec Pandas ou Gemini
+                    time.sleep(1.5) # On simule un temps de calcul
+                    
+                    progress_bar.progress((i + 1) / len(chemins_locaux))
+                
+                st.divider()
+                st.success("✨ Traitement fini. Sortie du bloc temporaire...")
+
+            # 3. Vérification de la suppression
+            st.warning("⚠️ Vérification : Tentative d'accès au dossier...")
+            if not os.path.exists(tmpdirname):
+                st.info("🗑️ Confirmation : Le dossier et les fichiers ont bien été supprimés du serveur.")
+            
+    else:
+        st.error(f"Attention : Vous avez mis {len(uploaded_files)} fichier(s). Il en faut 3.")
+
+# --- ASTUCE POUR TON PROBLÈME DE DÉBIT/CRÉDIT ---
+with st.sidebar:
+    st.header("Note Technique")
+    st.write("""
+    Pour éviter que Gemini ne confonde **Débit** et **Crédit**, 
+    profite du fait que le fichier est stocké sur le disque pour :
+    1. Lire le texte brut avant l'envoi.
+    2. Ajouter une instruction : 
+       *'Le fichier est situé dans {tmpdirname}, vérifie bien les tabulations.'*
+    """)
