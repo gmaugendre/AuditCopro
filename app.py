@@ -1,9 +1,9 @@
+"""
+
 import streamlit as st
 from fpdf import FPDF
 from google import genai
 import re
-
-"""
 
 # 1. Initialisation du client IA
 # Assurez-vous que GEMINI_API_KEY est bien dans vos "Secrets" sur Streamlit Cloud
@@ -72,6 +72,7 @@ if uploaded_file is not None:
     st.write(reponse_ia)
 
     """
+
 
 
 import streamlit as st
