@@ -74,78 +74,67 @@ if uploaded_file is not None:
     """
 
 
-
 import streamlit as st
 import os
 import tempfile
 import time
-import pandas as pd
 
-# --- CONFIGURATION DE LA PAGE ---
-st.set_page_config(page_title="Test Temp Storage", layout="wide")
+st.title("🧪 Test d'accès physique au fichier")
 
-st.title("🧪 Test d'Upload et Stockage Temporaire")
-st.write("Ce script stocke physiquement les fichiers, simule un traitement, puis les supprime.")
-
-# --- ZONE D'UPLOAD ---
+# 1. Upload
 uploaded_files = st.file_uploader(
-    "Chargez exactement 3 fichiers PDF ou CSV", 
+    "Chargez 3 fichiers pour le test", 
     accept_multiple_files=True
 )
 
-# --- LOGIQUE PRINCIPALE ---
 if uploaded_files:
     if len(uploaded_files) == 3:
-        if st.button("Lancer le cycle complet"):
+        if st.button("Lancer le test d'accès"):
             
-            # 1. Création du dossier temporaire
+            # 2. Création du dossier temporaire
             with tempfile.TemporaryDirectory() as tmpdirname:
                 st.info(f"📂 Dossier temporaire créé : `{tmpdirname}`")
                 
-                chemins_locaux = []
-
-                # 2. Sauvegarde des fichiers sur le "disque"
+                # Sauvegarde des fichiers
                 for uploaded_file in uploaded_files:
                     path = os.path.join(tmpdirname, uploaded_file.name)
                     with open(path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
-                    chemins_locaux.append(path)
-                    st.success(f"✅ Fichier écrit : `{uploaded_file.name}`")
+                
+                st.success("✅ Tous les fichiers ont été écrits sur le disque.")
 
+                # --- PARTIE DEMANDÉE : ACCÈS PHYSIQUE AU PREMIER FICHIER ---
                 st.divider()
-                st.subheader("⚙️ Simulation du traitement (ex: Gemini)")
-                
-                # Barres de progression pour le test
-                progress_bar = st.progress(0)
-                
-                for i, path in enumerate(chemins_locaux):
-                    # --- C'est ici que tu mettrais ton code Gemini ---
-                    # ex: result = mon_extraction_gemini(path)
-                    st.write(f"Analyse en cours de : `{os.path.basename(path)}`...")
-                    
-                    # Simulation de lecture avec Pandas ou Gemini
-                    time.sleep(1.5) # On simule un temps de calcul
-                    
-                    progress_bar.progress((i + 1) / len(chemins_locaux))
-                
-                st.divider()
-                st.success("✨ Traitement fini. Sortie du bloc temporaire...")
+                st.subheader("🔍 Vérification de l'accès physique")
 
-            # 3. Vérification de la suppression
-            st.warning("⚠️ Vérification : Tentative d'accès au dossier...")
-            if not os.path.exists(tmpdirname):
-                st.info("🗑️ Confirmation : Le dossier et les fichiers ont bien été supprimés du serveur.")
+                # On récupère la liste des fichiers présents dans le dossier tmp
+                fichiers_physiques = os.listdir(tmpdirname)
+                
+                if fichiers_physiques:
+                    # On cible le premier fichier
+                    nom_premier_fichier = fichiers_physiques[0]
+                    chemin_complet = os.path.join(tmpdirname, nom_premier_fichier)
+
+                    st.write(f"Tentative d'ouverture de : `{chemin_complet}`")
+
+                    try:
+                        # On ouvre le fichier physiquement à partir du chemin
+                        with open(chemin_complet, "rb") as f:
+                            contenu = f.read(100) # On lit les 100 premiers octets pour tester
+                        
+                        st.success(f"🔓 Succès ! Le fichier `{nom_premier_fichier}` est bien accessible.")
+                        st.write("Début des données brutes lues sur le disque :")
+                        st.code(contenu) # Affiche les premiers octets (utile pour voir les headers PDF/Text)
+                        
+                    except Exception as e:
+                        st.error(f"❌ Erreur d'accès au fichier : {e}")
+                
+                # Petite pause pour te laisser voir le message avant la suppression automatique
+                st.info("Attente de 5 secondes avant la suppression automatique du dossier...")
+                time.sleep(5)
+
+            # 3. Sortie du bloc 'with'
+            st.warning("🗑️ Le dossier temporaire a été supprimé. Le chemin n'est plus accessible.")
             
     else:
-        st.error(f"Attention : Vous avez mis {len(uploaded_files)} fichier(s). Il en faut 3.")
-
-# --- ASTUCE POUR TON PROBLÈME DE DÉBIT/CRÉDIT ---
-with st.sidebar:
-    st.header("Note Technique")
-    st.write("""
-    Pour éviter que Gemini ne confonde **Débit** et **Crédit**, 
-    profite du fait que le fichier est stocké sur le disque pour :
-    1. Lire le texte brut avant l'envoi.
-    2. Ajouter une instruction : 
-       *'Le fichier est situé dans {tmpdirname}, vérifie bien les tabulations.'*
-    """)
+        st.error("Veuillez sélectionner exactement 3 fichiers.")
