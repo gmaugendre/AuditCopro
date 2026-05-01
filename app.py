@@ -29,57 +29,56 @@ def executer_analyse_technique(chemin_dossier):
     }
 
 # --- CONFIGURATION UI ---
-st.set_page_config(page_title="Audit Copro Express", layout="wide") # Passage en mode large
+st.set_page_config(page_title="Audit Copro Express", layout="wide")
 
-# CSS pour Verdana et Élargissement du cadre bleu
+# CSS pour Verdana, réduction interligne et taille de police
 st.markdown("""
     <style>
     html, body, [class*="st-"] {
         font-family: 'Verdana', sans-serif;
     }
     
-    /* Élargissement du cadre bleu */
     .pitch-container {
         background-color: #f0f7ff;
-        padding: 50px; /* Plus d'espace interne */
+        padding: 40px 60px; 
         border-radius: 20px;
         border: 2px solid #1e3a8a;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        margin: 0 auto 40px auto;
-        max-width: 1000px; /* Cadre beaucoup plus large */
-        line-height: 1.8;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        margin: 0 auto 30px auto;
+        max-width: 1000px; 
+        line-height: 1.4; /* Interligne réduit */
         text-align: center;
     }
     
     .pitch-main-title {
-        font-size: 2.8rem; /* Titre plus imposant */
+        font-size: 2.4rem; /* Légèrement réduit (était 2.8) */
         font-weight: 900;
         color: #1e3a8a;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
     }
     
     .pitch-body {
-        font-size: 1.25rem; /* Texte central plus lisible */
+        font-size: 1.1rem; /* Légèrement réduit (était 1.25) */
         color: #334155;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         text-align: justify;
     }
     
     .pitch-highlight {
-        font-size: 2.2rem; /* Ligne finale plus grande */
+        font-size: 1.9rem; /* Légèrement réduit (était 2.2) */
         font-weight: 700;
         color: #10b981;
-        margin-top: 30px;
+        margin-top: 20px;
         border-top: 1px solid #cbd5e1;
-        padding-top: 20px;
+        padding-top: 15px;
     }
 
     .stButton>button {
         background-color: #1e3a8a;
         color: white;
-        height: 3.5em;
-        font-size: 1.1rem;
-        border-radius: 10px;
+        height: 3em;
+        font-size: 1rem;
+        border-radius: 8px;
         width: 100%;
     }
     </style>
@@ -97,7 +96,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- ZONE CENTRALE D'UPLOAD ---
-_, col_center, _ = st.columns([1, 2, 1]) # Centrage des uploaders
+_, col_center, _ = st.columns([1, 1.5, 1]) 
 
 with col_center:
     gl = st.file_uploader("Grand Livre (PDF)", type=["pdf"])
@@ -130,7 +129,7 @@ with col_center:
             with open(pdf_out, "rb") as f:
                 st.download_button("📥 Télécharger le rapport (PDF)", f, file_name="Audit_Copro.pdf")
         else:
-            st.error("Il manque des documents (Grand Livre + 12 relevés requis).")
+            st.error("Documents manquants (1 Grand Livre + 12 relevés requis).")
 
 # --- FOOTER ---
 st.markdown('<div style="font-size: 0.8rem; color: gray; text-align: center; margin-top: 50px; padding: 20px; border-top: 1px solid #eee;">gael_maugendre@hotmail.com | +33 6 14 29 80 29</div>', unsafe_allow_html=True)
