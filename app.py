@@ -36,7 +36,7 @@ def convert_pdf_to_excel(pdf_path):
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 "Extraire les colonnes : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
@@ -114,7 +114,7 @@ with col1:
 
 with col2:
     st.markdown("### 2. Traitement")
-    if gl_file and releves_files and len(releves_files) == 1:  ############################12
+    if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 12 APRES DEBOGAGE
         if st.button("Générer le rapport complet", type="primary"):
             progress = st.progress(0)
             
@@ -138,7 +138,7 @@ with col2:
             st.success("Analyse terminée.")
             st.download_button("📥 Télécharger le Rapport (TXT)", rapport_final, "Rapport_Audit.txt")
 
-            # --- NOUVEAU : APERÇU DES DONNÉES CONVERTIES ---
+            # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
             st.markdown("### 🛠️ Aperçu des conversions IA")
             
