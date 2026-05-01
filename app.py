@@ -25,6 +25,21 @@ def save_uploaded_file(uploaded_file, subfolder):
 
 def traiter_donnees(gl_path, releves_paths):
     """
+    Prend le Grand Livre et en fait une copie nommée 'rapport_final.pdf'.
+    """
+    st.info("Génération du rapport à partir du Grand Livre...")
+    
+    # Chemin cible
+    report_path = Path(UPLOAD_DIR) / "rapport_final.pdf"
+    
+    # COPIE RÉELLE du fichier PDF (pour qu'il soit valide à l'ouverture)
+    shutil.copy(gl_path, report_path)
+        
+    return report_path
+
+"""
+def traiter_donnees(gl_path, releves_paths):
+    """
     Fonction de traitement (actuellement vide).
     C'est ici que tu mettras ta logique d'analyse PDF (PyMuPDF, Camelot, etc.)
     """
@@ -39,7 +54,7 @@ def traiter_donnees(gl_path, releves_paths):
         f.write("Ceci est un rapport généré automatiquement.")
         
     return report_path
-
+"""
 # --- INTERFACE UTILISATEUR ---
 
 st.title("📂 Assistant d'analyse des comptes")
@@ -79,8 +94,8 @@ with col2:
 
                 # --- NETTOYAGE IMMÉDIAT DES SOURCES ---
                 # On supprime les dossiers 'grand_livre' et 'releves'
-                shutil.rmtree(Path(UPLOAD_DIR) / "grand_livre")
-                shutil.rmtree(Path(UPLOAD_DIR) / "releves")
+                shutil.rmtree(Path(UPLOAD_DIR) / "grand_livre", ignore_errors=True)
+                shutil.rmtree(Path(UPLOAD_DIR) / "releves", ignore_errors=True)
 
                 # --- PRÉPARATION DU TÉLÉCHARGEMENT ---
                 # On lit le rapport en mémoire pour pouvoir supprimer le fichier physique
