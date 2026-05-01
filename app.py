@@ -101,6 +101,3 @@ with col2:
     else:
         st.info("Veuillez uploader tous les documents pour activer le traitement.")
 
-# --- VISUALISATION DU SERVEUR (OPTIONNEL) ---
-if st.checkbox("Afficher les fichiers sur le serveur"):
-    st.write(os.listdir(UPLOAD_DIR))
