@@ -41,7 +41,7 @@ def convert_pdf_to_excel(pdf_path):
         Mets les en-têtes des colonnes NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
         Les dates doivent être au format date JJ/MM/AAAA.
         Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format numérique 1234.56. Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
-        N'affiche aucun autre texte."""       ]
+        N'affiche aucun autre texte."""
 
         response = client.models.generate_content(
             model="gemini-2.0-flash",
