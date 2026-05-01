@@ -48,7 +48,14 @@ def convert_pdf_to_excel(pdf_path):
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
         return df
-    except: return pd.DataFrame()
+        
+        except Exception as e:
+        # Vérification si l'erreur vient du quota
+        if "429" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 QUOTA ÉPUISÉ : Gemini a atteint sa limite quotidienne gratuite. Réessayez demain ou utilisez une autre clé API.")
+        else:
+            st.error(f"❌ Erreur technique : {e}")
+        return pd.DataFrame()
 
 def extract_releve_data(pdf_path):
     try:
