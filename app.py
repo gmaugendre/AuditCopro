@@ -74,7 +74,15 @@ def extract_releve_data(pdf_path):
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
         return df
-    except: return pd.DataFrame()
+
+    except Exception as e:
+        # Vérification si l'erreur vient du quota
+        if "429" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 QUOTA ÉPUISÉ : Gemini a atteint sa limite quotidienne gratuite. Réessayez demain ou utilisez une autre clé API.")
+        else:
+            st.error(f"❌ Erreur technique : {e}")
+    return pd.DataFrame()
+
 
 # --- MOTEUR D'AUDIT ---
 
@@ -162,3 +170,10 @@ with col2:
             os.makedirs(UPLOAD_DIR)
     else:
         st.info("En attente des documents (1 GL + 12 Relevés)...")
+
+st.markdown("---")
+st.markdown(" ###### Ce projet est un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, expression de besoins etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
+st.markdown("---")
+st.caption(" ###### Disclaimer: Je suis un assistant informatique conçu pour accompagner le Conseil syndical dans sa mission d'analyse et de contrôle des comptes de la copropriété. Mon rôle est d'aider à l'identification de points de vigilance. Mon intervention ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
+st.caption(" ###### Aucune donnée sur votre copropriété n'est conservée ni partagée: tous les fichiers sont immédiatement supprimés dés la fin du traitement et aucun rapport n'est stocké.")
+
