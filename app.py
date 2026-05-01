@@ -88,13 +88,14 @@ def traiter_donnees(gl_path, releves_paths):
 
 # --- INTERFACE UTILISATEUR ---
 
-st.title("📂 Assistant d'analyse des comptes")
+st.title("Assistant d'analyse des comptes")
+st.subheader("à partir du grand livre et des relevés bancaires")
 st.markdown("---")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.header("## 1. Import des données")
+    st.header("1. Import des données")
     gl_file = st.file_uploader("Déposez le Grand Livre (PDF)", type="pdf", key="gl")
     releves_files = st.file_uploader(
         "Déposez les 12 relevés de compte (PDF)", 
@@ -104,14 +105,14 @@ with col1:
     )
 
 with col2:
-    st.header("## 2. Analyse et rapport")
+    st.header("2. Analyse et rapport")
     
     if gl_file and releves_files:
         if len(releves_files) != 12:
             st.warning(f"Attention : Vous avez déposé {len(releves_files)} relevé(s) sur 12 attendus.")
         
         if st.button("Lancer le traitement", type="primary"):
-            with st.spinner("Analyse en cours..."):
+            with st.spinner("Analyse en cours (durée de 5 à 10 min.)..."):
                 gl_saved_path = save_uploaded_file(gl_file, "grand_livre")
                 paths_releves = [save_uploaded_file(f, "releves") for f in releves_files]
                 
