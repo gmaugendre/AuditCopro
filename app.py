@@ -33,13 +33,24 @@ def save_uploaded_file(uploaded_file, sub):
 
 def convert_pdf_to_excel(pdf_path):
     try:
+    prompt = """Agis comme un extracteur de données comptables de haute précision.
+    Analyse ce fichier PDF et extrais chaque écriture comptable dans un fichier EXCEL.
+    Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
+    Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
+    Si les colonnes NUMERO COMPTE ou NOM COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
+    Si les colonnes CODE JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
+    Mets les en-têtes des colonnes NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
+    Les dates doivent être au format date JJ/MM/AAAA.
+    Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format numérique 1234.56. Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
+    N'affiche aucun autre texte."""
+
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                "Extraire les colonnes : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
+                prompt
             ],
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -59,13 +70,25 @@ def convert_pdf_to_excel(pdf_path):
 
 def extract_releve_data(pdf_path):
     try:
+        prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction.
+                    Structure des colonnes : DATE | LIBELLE | DEBIT | CREDIT. Affiche ces 4 mots d'en-tête de colonnes dans la première ligne uniquement.
+                    Règles impératives :
+                    Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
+                    Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
+                    Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
+                    Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
+                    Format de date : Utilise le format JJ/MM/AAAA.
+                    SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
+                    DATE (JJ/MM/AAAA), LIBELLE, DEBIT, CREDIT.
+                    N'affiche aucun texte avant ou après le JSON."""
+
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                "Extraire transactions : DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
+                prompt
             ],
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
