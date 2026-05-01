@@ -39,7 +39,7 @@ def traiter_donnees(gl_path, releves_paths):
 
 """
 def traiter_donnees(gl_path, releves_paths):
-    """
+
     Fonction de traitement (actuellement vide).
     C'est ici que tu mettras ta logique d'analyse PDF (PyMuPDF, Camelot, etc.)
     """
