@@ -133,9 +133,9 @@ with col2:
                     
                     st.success("Traitement terminé ! Fichiers supprimés du serveur.")
                     
-                    # Téléchargement du fichier Excel
+                    # Téléchargement du rapport: A MODIFIER AVEC LE RAPPORT A LA FIN
                     st.download_button(
-                        label="📥 Télécharger le Grand Livre traité (Excel)",
+                        label="📥 Télécharger le rapport d'analyse (pdf)",
                         data=output_data,
                         file_name="grand_livre_traite.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
