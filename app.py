@@ -97,12 +97,3 @@ with col2:
                 st.error(f"Une erreur est survenue lors du traitement : {e}")
     else:
         st.info("Veuillez uploader les documents pour activer le bouton de traitement.")
-
-# --- VERIFICATION SERVEUR ---
-st.markdown("---")
-if st.checkbox("Vérifier l'espace de stockage (doit être vide après traitement)"):
-    content = os.listdir(UPLOAD_DIR)
-    if not content:
-        st.write("✅ Le serveur est vide.")
-    else:
-        st.write("Fichiers restants :", content)
