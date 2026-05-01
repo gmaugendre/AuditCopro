@@ -21,6 +21,8 @@ if not os.path.exists(UPLOAD_DIR):
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
+GEMINI_MODEL="gemini-2.5-flash"
+
 # --- FONCTIONS UTILITAIRES ---
 
 def save_uploaded_file(uploaded_file, sub):
@@ -47,7 +49,7 @@ def convert_pdf_to_excel(pdf_path):
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 prompt
@@ -85,7 +87,7 @@ def extract_releve_data(pdf_path):
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 prompt
@@ -141,7 +143,7 @@ st.markdown("---")
 
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown("### 1. Documents")
+    st.markdown("### 1. Documents (exercice annuel)")
     gl_file = st.file_uploader("Grand Livre (PDF)", type="pdf")
     releves_files = st.file_uploader("12 Relevés (PDF)", type="pdf", accept_multiple_files=True)
 
@@ -169,13 +171,13 @@ with col2:
             progress.progress(100)
             
             st.success("Analyse terminée.")
-            st.download_button("📥 Télécharger le Rapport (TXT)", rapport_final, "Rapport_Audit.txt")
+            st.download_button("📥 Télécharger le rapport.", rapport_final, "Rapport_Audit.txt")
 
             # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
             st.markdown("### 🛠️ Aperçu des conversions IA")
             
-            with st.expander("Voir le Grand Livre converti"):
+            with st.expander("Voir le Grand livre converti"):
                 st.dataframe(gl_df)
                 # Optionnel : Télécharger le GL en Excel
                 output_gl = io.BytesIO()
@@ -183,7 +185,7 @@ with col2:
                     gl_df.to_excel(writer, index=False)
                 st.download_button("💾 Télécharger GL en Excel", output_gl.getvalue(), "GL_converti.xlsx")
 
-            with st.expander("Voir les Relevés Bancaires cumulés"):
+            with st.expander("Voir les relevés bancaires cumulés"):
                 st.dataframe(bank_df)
                 output_bk = io.BytesIO()
                 with pd.ExcelWriter(output_bk, engine='openpyxl') as writer:
@@ -193,8 +195,9 @@ with col2:
             # Nettoyage
             shutil.rmtree(UPLOAD_DIR)
             os.makedirs(UPLOAD_DIR)
+            st.info("Toutes les données ont été supprimées.")
     else:
-        st.info("En attente des documents (1 GL + 12 Relevés)...")
+        st.info("En attente des documents (1 GL & 12 relevés)...")
 
 st.markdown("---")
 st.markdown(" ###### Ce projet est un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, expression de besoins etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
