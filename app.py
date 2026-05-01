@@ -98,7 +98,8 @@ def traiter_donnees(gl_path, releves_paths):
     
     # On prend comme rapport final le grand livre PDF (pour le test)
     report_path = Path(UPLOAD_DIR) / "rapport_final.pdf"
-    shutil.copy(gl_path, report_path)
+    # shutil.copy(gl_path, report_path)    
+    shutil.copy(excel_result, report_path)
         
     return report_path
 
