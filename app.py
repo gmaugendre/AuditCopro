@@ -95,7 +95,7 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.header("1. Import des données (exercice annuel)")
+    st.header("1. Import des données (exercice)")
     gl_file = st.file_uploader("Déposez le Grand Livre (PDF)", type="pdf", key="gl")
     releves_files = st.file_uploader(
         "Déposez les 12 relevés de compte (PDF)", 
