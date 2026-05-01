@@ -36,7 +36,7 @@ def convert_pdf_to_excel(pdf_path):
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 "Extraire les colonnes : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
