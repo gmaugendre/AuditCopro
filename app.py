@@ -1,121 +1,122 @@
 import streamlit as st
 
-# --- CONFIGURATION DE LA PAGE ---
-st.set_page_config(page_title="Audit Copro Express", layout="wide")
+# --- CONFIGURATION ---
+st.set_page_config(page_title="Audit Copro Express", layout="centered")
 
-# --- DESIGN PERSONNALISÉ (CSS) ---
+# --- STYLE CSS (Fidèle au dessin) ---
 st.markdown("""
     <style>
-    /* Police globale Verdana */
+    /* Police Verdana globale */
     html, body, [class*="st-"] {
         font-family: 'Verdana', sans-serif;
     }
 
-    /* Le grand cadre principal du haut (ton dessin) */
-    .main-frame {
+    /* 1. LE GRAND CADRE (Texte du Pitch) */
+    .pitch-box {
         border: 2px solid #1e3a8a;
-        border-radius: 15px;
-        padding: 40px;
+        border-radius: 10px;
+        padding: 30px;
         background-color: #ffffff;
-        max-width: 1100px;
-        margin: 0 auto 30px auto;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 40px;
+        text-align: center;
     }
 
-    /* La première ligne en gros */
-    .title-line {
-        font-size: 2.5rem;
+    .line-top {
+        font-size: 2.2rem;
         font-weight: 900;
         color: #1e3a8a;
-        text-align: center;
-        margin-bottom: 25px;
-        line-height: 1.2;
+        margin-bottom: 20px;
     }
 
-    /* Le corps du texte (interligne réduit et taille moyenne) */
-    .body-text {
+    .line-middle {
         font-size: 1.05rem;
-        color: #475569;
+        color: #334155;
         line-height: 1.4;
-        text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
+        text-align: justify;
     }
 
-    /* La dernière ligne en gros et vert */
-    .highlight-line {
-        font-size: 2.1rem;
+    .line-bottom {
+        font-size: 1.8rem;
         font-weight: 700;
         color: #10b981;
-        text-align: center;
         margin-top: 10px;
     }
 
-    /* Style des zones d'upload (pour qu'elles soient côte à côte) */
-    .upload-section {
-        max-width: 1100px;
-        margin: 0 auto;
+    /* 2. LES ZONES DE DÉPÔT (Rectangles du dessin) */
+    .upload-label {
+        font-weight: bold;
+        color: #1e3a8a;
+        margin-bottom: 10px;
+        display: block;
     }
 
-    /* Bouton d'analyse */
+    /* Ajustement des zones d'upload pour qu'elles ressemblent à des boites */
+    .stFileUploader section {
+        border: 1px dashed #1e3a8a !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+    }
+
+    /* 3. LE BOUTON D'ANALYSE */
     .stButton>button {
+        width: 100%;
         background-color: #1e3a8a;
         color: white;
-        font-size: 1.2rem;
         font-weight: bold;
-        height: 3.5em;
-        width: 100%;
-        border-radius: 10px;
+        font-size: 1.2rem;
+        padding: 15px;
+        border-radius: 8px;
+        border: none;
         margin-top: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
-    /* Cacher le menu Streamlit pour faire plus pro */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    .stButton>button:hover {
+        background-color: #2563eb;
+        color: white;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 1. LE CADRE (TEXTE DU PITCH) ---
+# --- RENDU DE LA PAGE ---
+
+# 1. Le Cadre de texte (Pitch)
 st.markdown("""
-    <div class="main-frame">
-        <div class="title-line">Personne ne lit les comptes de sa copropriété. Nous, si.</div>
-        <div class="body-text">
-            Comptes indéchiffrables, erreurs invisibles, manque de temps, d’appétence...<br>
+    <div class="pitch-box">
+        <div class="line-top">Personne ne lit les comptes de sa copropriété. Nous, si.</div>
+        <div class="line-middle">
+            Comptes indéchiffrables, erreurs invisibles, manque de temps, d’appétence...<br><br>
             Notre outil fait le travail à votre place: déposez simplement le Grand Livre et les relevés bancaires de la copropriété, et notre algorithme vous dit exactement où regarder.<br><br>
-            Une analyse rigoureuse en moins de 5 minutes, gratuitement.<br>
+            Une analyse rigoureuse en moins de 5 minutes, gratuitement.<br><br>
             La transparence et la simplicité que vous méritez pour poser les bonnes questions à votre syndic.
         </div>
-        <div class="highlight-line">Reprenez le contrôle !</div>
+        <div class="line-bottom">Reprenez le contrôle !</div>
     </div>
     """, unsafe_allow_html=True)
 
-# --- 2. LES ZONES D'UPLOAD (CÔTE À CÔTE) ---
-st.markdown('<div class="upload-section">', unsafe_allow_html=True)
+# 2. Les deux zones de dépôt (Côte à côte comme sur le dessin)
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("**1. Grand Livre comptable**")
-    gl_file = st.file_uploader("Glisser le PDF ici", type=["pdf"], key="gl", label_visibility="collapsed")
+    st.markdown('<span class="upload-label">1. Grand Livre (PDF)</span>', unsafe_allow_html=True)
+    gl_file = st.file_uploader("Upload GL", type=["pdf"], key="gl", label_visibility="collapsed")
 
 with col2:
-    st.markdown("**2. Relevés Bancaires (les 12)**")
-    rb_files = st.file_uploader("Glisser les PDF ici", type=["pdf"], accept_multiple_files=True, key="rb", label_visibility="collapsed")
-st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<span class="upload-label">2. Relevés Bancaires (12 PDF)</span>', unsafe_allow_html=True)
+    rb_files = st.file_uploader("Upload RB", type=["pdf"], accept_multiple_files=True, key="rb", label_visibility="collapsed")
 
-# --- 3. LE BOUTON D'ACTION ---
-# Centré sous les deux colonnes
-_, btn_col, _ = st.columns([1, 2, 1])
-with btn_col:
-    if st.button("Lancer l'analyse technique"):
-        if gl_file and len(rb_files) == 12:
-            st.success("Analyse lancée...")
-        else:
-            st.error("Documents manquants (Grand Livre + 12 relevés requis).")
+# 3. Le bouton d'analyse technique
+if st.button("Lancer l'analyse technique"):
+    if gl_file and len(rb_files) == 12:
+        st.balloons()
+        st.success("Analyse en cours... Votre rapport sera prêt dans un instant.")
+    else:
+        st.error("Erreur : Assurez-vous d'avoir déposé le Grand Livre et les 12 relevés.")
 
-# --- 4. LE DISCLAIMER TOUT EN BAS ---
+# --- FOOTER ---
 st.markdown("""
-    <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; max-width: 900px; margin: 60px auto 20px auto; line-height: 1.2;">
-        <b>Disclaimer :</b> Je suis un assistant informatique conçu pour accompagner le Conseil Syndical. Mon intervention ne se substitue pas au pouvoir de contrôle des membres du Conseil ni à l'expertise du syndic. Les éléments présentés sont des pistes d'investigation. Aucune donnée n'est conservée. 
-        Prototype gratuit : gael_maugendre@hotmail.com | +33 6 14 29 80 29
+    <div style="text-align: center; color: #94a3b8; font-size: 0.8rem; margin-top: 50px;">
+        gael_maugendre@hotmail.com | +33 6 14 29 80 29
     </div>
     """, unsafe_allow_html=True)
