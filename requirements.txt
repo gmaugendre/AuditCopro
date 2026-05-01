@@ -3,3 +3,6 @@ fpdf2
 pandas
 google-genai
 openpyxl
+numpy
+thefuzz
+scipy
