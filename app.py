@@ -11,13 +11,15 @@ from google.genai import types
 # --- CONFIGURATION DE L'APPLI ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
 
-# Clé API et Dossier local
-API_KEY = "AIzaSyDbWS7RAXZ3aC4VHqAERxE9o71vRb4ndYs"
+# Dossier local
 UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-# Initialisation du client Gemini
+# Récupération sécurisée de la clé depuis les Secrets
+API_KEY = st.secrets["GEMINI_API_KEY"]
+
+# Initialisation du client avec la clé sécurisée
 client = genai.Client(
     api_key=API_KEY, 
     http_options={'api_version': 'v1beta'}
