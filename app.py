@@ -4,7 +4,7 @@ import time
 import shutil
 from fpdf import FPDF
 
-# --- LOGIQUE FONCTIONNELLE (Inchangée) ---
+# --- 1. LOGIQUE TECHNIQUE (TES FONCTIONNALITÉS) ---
 def stocker_fichiers_localement(grand_livre, liste_releves):
     dossier_session = os.path.join("/tmp", f"audit_{int(time.time())}")
     os.makedirs(dossier_session, exist_ok=True)
@@ -20,144 +20,89 @@ def executer_analyse_technique(chemin_dossier):
     return {
         "date": "01/05/2026",
         "anomalies": [
-            {"t": "Comptes d'attente (471/472)", "d": "Soldes non identifiés détectés."},
-            {"t": "Fournisseurs", "d": "Avoir non déduit sur contrat ascenseur."},
-            {"t": "Banque", "d": "Écart de rapprochement sur le mois de mai."},
+            {"t": "Comptes d'attente (471/472)", "d": "Soldes non identifies detectes."},
+            {"t": "Fournisseurs", "d": "Avoir non deduit sur contrat ascenseur."},
+            {"t": "Banque", "d": "Ecart de rapprochement sur le mois de mai."},
             {"t": "Doublons", "d": "Facture EDF saisie deux fois."}
         ]
     }
 
-# --- CONFIGURATION UI ---
+# --- 2. APPARENCE (UI MODERNE) ---
 st.set_page_config(page_title="Audit Copro Express", layout="centered")
 
-# CSS pour un look épuré et moderne
 st.markdown("""
     <style>
-    /* Police Verdana et lissage */
+    /* Global */
     html, body, [class*="st-"] {
         font-family: 'Verdana', sans-serif;
-        color: #2c3e50;
+        color: #1e293b;
     }
     
-    /* Le cadre de pitch : plus de bordure lourde, juste une ombre légère */
-    .hero-section {
-        background-color: #ffffff;
-        padding: 40px 20px;
+    /* Header minimaliste */
+    .hero {
         text-align: center;
-        border-bottom: 1px solid #f0f2f6;
-        margin-bottom: 40px;
+        padding: 60px 0 40px 0;
     }
     
-    .main-title {
-        font-size: 2.2rem;
+    .title {
+        font-size: 2.8rem;
         font-weight: 800;
-        color: #1e3a8a;
+        letter-spacing: -1px;
+        line-height: 1;
+        color: #0f172a;
         margin-bottom: 20px;
-        line-height: 1.2;
     }
     
-    .sub-title {
-        font-size: 1.1rem;
-        color: #5f6368;
-        max-width: 700px;
-        margin: 0 auto 30px auto;
-        line-height: 1.6;
-    }
-    
-    .cta-line {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #10b981;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+    .subtitle {
+        font-size: 1.2rem;
+        color: #64748b;
+        max-width: 600px;
+        margin: 0 auto;
     }
 
-    /* Style des boutons Streamlit */
+    /* Zones d'upload stylisées */
+    .stFileUploader section {
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+    }
+
+    /* Bouton principal */
     .stButton>button {
-        background-color: #1e3a8a;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        padding: 0.6rem 2rem;
-        font-weight: 600;
+        background-color: #1e3a8a !important;
+        color: white !important;
+        border-radius: 10px !important;
+        padding: 20px !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        border: none !important;
+        box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3);
         width: 100%;
-        transition: 0.3s;
+        transition: all 0.2s;
     }
     
     .stButton>button:hover {
-        background-color: #3b82f6;
-        border: none;
-        color: white;
-    }
-
-    /* Input boxes */
-    [data-testid="stFileUploadDropzone"] {
-        border: 2px dashed #e2e8f0 !important;
-        border-radius: 12px !important;
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(30, 58, 138, 0.4);
     }
     </style>
     
-    <div class="hero-section">
-        <div class="main-title">Personne ne lit les comptes de sa copropriété. Nous, si.</div>
-        <div class="sub-title">
-            Déposez vos documents. Notre algorithme identifie les anomalies, 
-            les erreurs de saisie et les économies oubliées en moins de 5 minutes.
-        </div>
-        <div class="cta-line">Reprenez le contrôle</div>
+    <div class="hero">
+        <div class="title">Personne ne lit les comptes de sa copropriété. <span style="color:#3b82f6;">Nous, si.</span></div>
+        <div class="subtitle">Analyse instantanée des flux financiers pour détecter les erreurs de gestion et les économies oubliées.</div>
     </div>
     """, unsafe_allow_html=True)
 
-# --- ZONE DE CHARGEMENT ---
+# --- 3. INTERACTION ---
+
 col1, col2 = st.columns(2)
 
 with col1:
     st.write("**Étape 1**")
-    gl = st.file_uploader("Grand Livre (PDF)", type=["pdf"], label_visibility="collapsed")
+    gl = st.file_uploader("Grand Livre", type=["pdf"], label_visibility="collapsed")
 
 with col2:
     st.write("**Étape 2**")
-    rb = st.file_uploader("12 Relevés (PDF)", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
+    rb = st.file_uploader("12 Relevés", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-# Bouton d'action centré
-_, center_btn, _ = st.columns([1, 2, 1])
-with center_btn:
-    if st.button("Lancer l'analyse technique"):
-        if gl and len(rb) == 12:
-            with st.status("Analyse des flux en cours...") as status:
-                chemin = stocker_fichiers_localement(gl, rb)
-                data = executer_analyse_technique(chemin)
-                
-                # Génération PDF
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Arial", 'B', 16)
-                pdf.cell(0, 10, "RAPPORT D'ANALYSE COMPTABLE", ln=True, align='C')
-                pdf.ln(10)
-                
-                for a in data['anomalies']:
-                    pdf.set_font("Arial", 'B', 11)
-                    pdf.cell(0, 8, clean_text = f"- {a['t']}", ln=True)
-                    pdf.set_font("Arial", '', 11)
-                    pdf.multi_cell(0, 7, a['d'].encode('latin-1', 'replace').decode('latin-1'))
-                    pdf.ln(3)
-                    
-                pdf_out = "/tmp/Rapport_Audit.pdf"
-                pdf.output(pdf_out)
-                shutil.rmtree(chemin)
-                status.update(label="Analyse terminée !", state="complete")
-            
-            st.success("Votre rapport est prêt.")
-            st.download_button("📥 Télécharger le rapport d'audit", open(pdf_out, "rb"), file_name="Audit_Copro.pdf")
-        else:
-            st.warning("Veuillez charger le Grand Livre et les 12 relevés bancaires.")
-
-# --- FOOTER DISCRET ---
-st.markdown("""
-    <div style="margin-top: 100px; text-align: center; border-top: 1px solid #f0f2f6; padding-top: 20px;">
-        <p style="color: #94a3b8; font-size: 0.85rem;">
-            gael_maugendre@hotmail.com &nbsp; | &nbsp; +33 6 14 29 80 29
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+st
