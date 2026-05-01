@@ -88,8 +88,8 @@ def traiter_donnees(gl_path, releves_paths):
 
 # --- INTERFACE UTILISATEUR ---
 
-st.title("Assistant d'analyse des comptes")
-st.subheader("à partir du grand livre et des relevés bancaires")
+st.title("Assistant d'analyse des comptes de copropriété")
+st.subheader("à partir des écritures détaillées du grand livre et des relevés bancaires")
 st.markdown("---")
 
 col1, col2 = st.columns(2)
