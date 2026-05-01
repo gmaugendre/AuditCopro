@@ -145,6 +145,12 @@ def generer_rapport_audit(df_gl, df_bank):
     r.append("FIN DU RAPPORT")
     return "\n".join(r)
 
+def save_uploaded_file(uploaded_file, sub):
+    p = Path(UPLOAD_DIR) / sub / uploaded_file.name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "wb") as f: f.write(uploaded_file.getbuffer())
+    return p
+
 # --- INTERFACE STREAMLIT ---
 
 st.title("Système d'Audit Automatisé")
@@ -190,9 +196,3 @@ with col2:
             os.makedirs(UPLOAD_DIR)
     else:
         st.info("En attente des documents (1 GL + 12 Relevés)...")
-
-def save_uploaded_file(uploaded_file, sub):
-    p = Path(UPLOAD_DIR) / sub / uploaded_file.name
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "wb") as f: f.write(uploaded_file.getbuffer())
-    return p
