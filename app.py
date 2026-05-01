@@ -1,108 +1,94 @@
 import streamlit as st
 import os
-import time
-import shutil
-from fpdf import FPDF
+from pathlib import Path
 
-# --- 1. LOGIQUE TECHNIQUE (TES FONCTIONNALITÉS) ---
-def stocker_fichiers_localement(grand_livre, liste_releves):
-    dossier_session = os.path.join("/tmp", f"audit_{int(time.time())}")
-    os.makedirs(dossier_session, exist_ok=True)
-    with open(os.path.join(dossier_session, "grand_livre.pdf"), "wb") as f:
-        f.write(grand_livre.getbuffer())
-    for i, fichier in enumerate(liste_releves):
-        with open(os.path.join(dossier_session, f"releve_{i+1}.pdf"), "wb") as f:
-            f.write(fichier.getbuffer())
-    return dossier_session
+# --- CONFIGURATION DE L'APPLI ---
+st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
 
-def executer_analyse_technique(chemin_dossier):
-    time.sleep(2) 
-    return {
-        "date": "01/05/2026",
-        "anomalies": [
-            {"t": "Comptes d'attente (471/472)", "d": "Soldes non identifies detectes."},
-            {"t": "Fournisseurs", "d": "Avoir non deduit sur contrat ascenseur."},
-            {"t": "Banque", "d": "Ecart de rapprochement sur le mois de mai."},
-            {"t": "Doublons", "d": "Facture EDF saisie deux fois."}
-        ]
-    }
+# Dossier local pour stocker les fichiers sur le serveur
+UPLOAD_DIR = "storage_compta"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
 
-# --- 2. APPARENCE (UI MODERNE) ---
-st.set_page_config(page_title="Audit Copro Express", layout="centered")
+# --- FONCTIONS CŒUR ---
 
-st.markdown("""
-    <style>
-    /* Global */
-    html, body, [class*="st-"] {
-        font-family: 'Verdana', sans-serif;
-        color: #1e293b;
-    }
+def save_uploaded_file(uploaded_file, subfolder):
+    """Stocke le fichier sur le serveur et retourne le chemin."""
+    path = Path(UPLOAD_DIR) / subfolder
+    path.mkdir(parents=True, exist_ok=True)
     
-    /* Header minimaliste */
-    .hero {
-        text-align: center;
-        padding: 60px 0 40px 0;
-    }
-    
-    .title {
-        font-size: 2.8rem;
-        font-weight: 800;
-        letter-spacing: -1px;
-        line-height: 1;
-        color: #0f172a;
-        margin-bottom: 20px;
-    }
-    
-    .subtitle {
-        font-size: 1.2rem;
-        color: #64748b;
-        max-width: 600px;
-        margin: 0 auto;
-    }
+    file_path = path / uploaded_file.name
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return file_path
 
-    /* Zones d'upload stylisées */
-    .stFileUploader section {
-        background-color: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-    }
-
-    /* Bouton principal */
-    .stButton>button {
-        background-color: #1e3a8a !important;
-        color: white !important;
-        border-radius: 10px !important;
-        padding: 20px !important;
-        font-weight: 700 !important;
-        font-size: 1.1rem !important;
-        border: none !important;
-        box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3);
-        width: 100%;
-        transition: all 0.2s;
-    }
+def traiter_donnees(gl_path, releves_paths):
+    """
+    Fonction de traitement (actuellement vide).
+    C'est ici que tu mettras ta logique d'analyse PDF (PyMuPDF, Camelot, etc.)
+    """
+    # Simulation de traitement
+    st.info("Analyse des fichiers en cours... (Logique à implémenter)")
     
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 20px 25px -5px rgba(30, 58, 138, 0.4);
-    }
-    </style>
+    # Chemin vers le rapport généré (exemple)
+    report_path = Path(UPLOAD_DIR) / "rapport_final.pdf"
     
-    <div class="hero">
-        <div class="title">Personne ne lit les comptes de sa copropriété. <span style="color:#3b82f6;">Nous, si.</span></div>
-        <div class="subtitle">Analyse instantanée des flux financiers pour détecter les erreurs de gestion et les économies oubliées.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Création d'un fichier PDF vide pour la démo (si il n'existe pas)
+    with open(report_path, "w") as f:
+        f.write("Ceci est un rapport généré automatiquement.")
+        
+    return report_path
 
-# --- 3. INTERACTION ---
+# --- INTERFACE UTILISATEUR ---
+
+st.title("📂 Assistant de Révision Comptable")
+st.markdown("---")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.write("**Étape 1**")
-    gl = st.file_uploader("Grand Livre", type=["pdf"], label_visibility="collapsed")
+    st.header("1. Importation des données")
+    
+    # Upload du Grand Livre
+    gl_file = st.file_uploader("Déposez le Grand Livre (PDF)", type="pdf", key="gl")
+    
+    # Upload des 12 relevés
+    releves_files = st.file_uploader(
+        "Déposez les 12 relevés de compte (PDF)", 
+        type="pdf", 
+        accept_multiple_files=True, 
+        key="releves"
+    )
 
 with col2:
-    st.write("**Étape 2**")
-    rb = st.file_uploader("12 Relevés", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
+    st.header("2. Actions & Statut")
+    
+    if gl_file and releves_files:
+        if len(releves_files) != 12:
+            st.warning(f"Attention : Vous avez déposé {len(releves_files)} relevé(s) sur 12 attendus.")
+        
+        if st.button("Lancer le traitement", type="primary"):
+            with st.spinner("Enregistrement et analyse..."):
+                # 1. Sauvegarde sur le serveur
+                gl_saved_path = save_uploaded_file(gl_file, "grand_livre")
+                paths_releves = [save_uploaded_file(f, "releves") for f in releves_files]
+                
+                # 2. Traitement
+                final_report_path = traiter_donnees(gl_saved_path, paths_releves)
+                
+                st.success("Traitement terminé !")
+                
+                # 3. Téléchargement du rapport
+                with open(final_report_path, "rb") as pdf_file:
+                    st.download_button(
+                        label="📥 Télécharger le rapport d'audit",
+                        data=pdf_file,
+                        file_name="rapport_audit_comptable.pdf",
+                        mime="application/pdf"
+                    )
+    else:
+        st.info("Veuillez uploader tous les documents pour activer le traitement.")
 
-st
+# --- VISUALISATION DU SERVEUR (OPTIONNEL) ---
+if st.checkbox("Afficher les fichiers sur le serveur"):
+    st.write(os.listdir(UPLOAD_DIR))
