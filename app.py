@@ -28,15 +28,13 @@ client = genai.Client(
 # --- FONCTIONS CŒUR ---
 
 def convert_pdf_to_excel(pdf_path):
-    """Ta fonction d'extraction Gemini intégrée."""
-    # Le fichier de sortie sera dans le même répertoire que le PDF
+    """Extraction Gemini intégrée."""
     output_path = pdf_path.with_suffix('.xlsx')
     
     try:
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
 
-        # Envoi à Gemini 2.5 Flash
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=[
@@ -58,10 +56,8 @@ def convert_pdf_to_excel(pdf_path):
         if not response.text:
             return None
 
-        # Nettoyage du texte reçu
         csv_data = response.text.replace("```csv", "").replace("```", "").strip()
 
-        # Conversion en DataFrame Pandas
         df = pd.read_csv(
             io.StringIO(csv_data), 
             sep=None, 
@@ -69,7 +65,6 @@ def convert_pdf_to_excel(pdf_path):
             on_bad_lines='warn'
         )
         
-        # Sauvegarde en Excel dans le même répertoire
         df.to_excel(output_path, index=False)
         return output_path
 
@@ -78,7 +73,6 @@ def convert_pdf_to_excel(pdf_path):
         return None
 
 def save_uploaded_file(uploaded_file, subfolder):
-    """Stocke le fichier sur le serveur et retourne le chemin."""
     path = Path(UPLOAD_DIR) / subfolder
     path.mkdir(parents=True, exist_ok=True)
     file_path = path / uploaded_file.name
@@ -87,21 +81,10 @@ def save_uploaded_file(uploaded_file, subfolder):
     return file_path
 
 def traiter_donnees(gl_path, releves_paths):
-    """Fonction de traitement qui appelle la conversion."""
+    """Modifié pour retourner le fichier Excel généré."""
     st.info("Analyse des fichiers en cours par l'IA...")
-    
-    # Appel de la fonction Gemini sur le Grand Livre
     excel_result = convert_pdf_to_excel(Path(gl_path))
-    
-    if excel_result:
-        st.success(f"Fichier Excel généré : {excel_result.name}")
-    
-    # On prend comme rapport final le grand livre PDF (pour le test)
-    report_path = Path(UPLOAD_DIR) / "rapport_final.pdf"
-    # shutil.copy(gl_path, report_path)    
-    shutil.copy(excel_result, report_path)
-        
-    return report_path
+    return excel_result # Retourne le chemin du fichier Excel
 
 # --- INTERFACE UTILISATEUR ---
 
@@ -129,30 +112,31 @@ with col2:
         
         if st.button("Lancer le traitement", type="primary"):
             with st.spinner("Analyse en cours..."):
-                # 1. Sauvegarde
                 gl_saved_path = save_uploaded_file(gl_file, "grand_livre")
                 paths_releves = [save_uploaded_file(f, "releves") for f in releves_files]
                 
-                # 2. Traitement (incluant Gemini)
-                final_report_path = traiter_donnees(gl_saved_path, paths_releves)
+                # Récupération du fichier Excel généré par l'IA
+                excel_path = traiter_donnees(gl_saved_path, paths_releves)
 
-                # 3. Préparation du téléchargement (Lecture en mémoire)
-                with open(final_report_path, "rb") as f:
-                    pdf_data = f.read()
-                
-                # 4. Nettoyage immédiat du serveur
-                shutil.rmtree(Path(UPLOAD_DIR) / "grand_livre", ignore_errors=True)
-                shutil.rmtree(Path(UPLOAD_DIR) / "releves", ignore_errors=True)
-                if os.path.exists(final_report_path):
-                    os.remove(final_report_path)
-                
-                st.success("Traitement terminé ! Serveur nettoyé.")
-                
-                st.download_button(
-                    label="📥 Télécharger le rapport d'audit",
-                    data=pdf_data,
-                    file_name="rapport_audit_comptable.pdf",
-                    mime="application/pdf"
-                )
+                if excel_path:
+                    # Lecture de l'Excel en mémoire
+                    with open(excel_path, "rb") as f:
+                        output_data = f.read()
+                    
+                    # Nettoyage immédiat
+                    shutil.rmtree(Path(UPLOAD_DIR) / "grand_livre", ignore_errors=True)
+                    shutil.rmtree(Path(UPLOAD_DIR) / "releves", ignore_errors=True)
+                    if os.path.exists(excel_path):
+                        os.remove(excel_path)
+                    
+                    st.success("Traitement terminé ! Fichiers supprimés du serveur.")
+                    
+                    # Téléchargement du fichier Excel
+                    st.download_button(
+                        label="📥 Télécharger le Grand Livre traité (Excel)",
+                        data=output_data,
+                        file_name="grand_livre_traite.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
     else:
         st.info("Veuillez uploader tous les documents pour activer le traitement.")
