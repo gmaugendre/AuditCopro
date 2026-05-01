@@ -106,8 +106,7 @@ with col1:
 
 with col2:
     st.header("2. Analyse et rapport")
-    st.markdown("###")
-    st.write("      ")
+    st.caption("###")
 
     if gl_file and releves_files:
         if len(releves_files) != 12:
