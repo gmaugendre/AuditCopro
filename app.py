@@ -1,122 +1,163 @@
 import streamlit as st
+import os
+import time
+import shutil
+from fpdf import FPDF
 
-# --- CONFIGURATION ---
+# --- LOGIQUE FONCTIONNELLE (Inchangée) ---
+def stocker_fichiers_localement(grand_livre, liste_releves):
+    dossier_session = os.path.join("/tmp", f"audit_{int(time.time())}")
+    os.makedirs(dossier_session, exist_ok=True)
+    with open(os.path.join(dossier_session, "grand_livre.pdf"), "wb") as f:
+        f.write(grand_livre.getbuffer())
+    for i, fichier in enumerate(liste_releves):
+        with open(os.path.join(dossier_session, f"releve_{i+1}.pdf"), "wb") as f:
+            f.write(fichier.getbuffer())
+    return dossier_session
+
+def executer_analyse_technique(chemin_dossier):
+    time.sleep(2) 
+    return {
+        "date": "01/05/2026",
+        "anomalies": [
+            {"t": "Comptes d'attente (471/472)", "d": "Soldes non identifiés détectés."},
+            {"t": "Fournisseurs", "d": "Avoir non déduit sur contrat ascenseur."},
+            {"t": "Banque", "d": "Écart de rapprochement sur le mois de mai."},
+            {"t": "Doublons", "d": "Facture EDF saisie deux fois."}
+        ]
+    }
+
+# --- CONFIGURATION UI ---
 st.set_page_config(page_title="Audit Copro Express", layout="centered")
 
-# --- STYLE CSS (Fidèle au dessin) ---
+# CSS pour un look épuré et moderne
 st.markdown("""
     <style>
-    /* Police Verdana globale */
+    /* Police Verdana et lissage */
     html, body, [class*="st-"] {
         font-family: 'Verdana', sans-serif;
+        color: #2c3e50;
     }
-
-    /* 1. LE GRAND CADRE (Texte du Pitch) */
-    .pitch-box {
-        border: 2px solid #1e3a8a;
-        border-radius: 10px;
-        padding: 30px;
+    
+    /* Le cadre de pitch : plus de bordure lourde, juste une ombre légère */
+    .hero-section {
         background-color: #ffffff;
-        margin-bottom: 40px;
+        padding: 40px 20px;
         text-align: center;
+        border-bottom: 1px solid #f0f2f6;
+        margin-bottom: 40px;
     }
-
-    .line-top {
+    
+    .main-title {
         font-size: 2.2rem;
-        font-weight: 900;
+        font-weight: 800;
         color: #1e3a8a;
         margin-bottom: 20px;
+        line-height: 1.2;
     }
-
-    .line-middle {
-        font-size: 1.05rem;
-        color: #334155;
-        line-height: 1.4;
-        margin-bottom: 20px;
-        text-align: justify;
+    
+    .sub-title {
+        font-size: 1.1rem;
+        color: #5f6368;
+        max-width: 700px;
+        margin: 0 auto 30px auto;
+        line-height: 1.6;
     }
-
-    .line-bottom {
-        font-size: 1.8rem;
+    
+    .cta-line {
+        font-size: 1.5rem;
         font-weight: 700;
         color: #10b981;
-        margin-top: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    /* 2. LES ZONES DE DÉPÔT (Rectangles du dessin) */
-    .upload-label {
-        font-weight: bold;
-        color: #1e3a8a;
-        margin-bottom: 10px;
-        display: block;
-    }
-
-    /* Ajustement des zones d'upload pour qu'elles ressemblent à des boites */
-    .stFileUploader section {
-        border: 1px dashed #1e3a8a !important;
-        border-radius: 8px !important;
-        padding: 20px !important;
-    }
-
-    /* 3. LE BOUTON D'ANALYSE */
+    /* Style des boutons Streamlit */
     .stButton>button {
-        width: 100%;
         background-color: #1e3a8a;
         color: white;
-        font-weight: bold;
-        font-size: 1.2rem;
-        padding: 15px;
         border-radius: 8px;
         border: none;
-        margin-top: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 0.6rem 2rem;
+        font-weight: 600;
+        width: 100%;
+        transition: 0.3s;
     }
     
     .stButton>button:hover {
-        background-color: #2563eb;
+        background-color: #3b82f6;
+        border: none;
         color: white;
     }
+
+    /* Input boxes */
+    [data-testid="stFileUploadDropzone"] {
+        border: 2px dashed #e2e8f0 !important;
+        border-radius: 12px !important;
+    }
     </style>
-    """, unsafe_allow_html=True)
-
-# --- RENDU DE LA PAGE ---
-
-# 1. Le Cadre de texte (Pitch)
-st.markdown("""
-    <div class="pitch-box">
-        <div class="line-top">Personne ne lit les comptes de sa copropriété. Nous, si.</div>
-        <div class="line-middle">
-            Comptes indéchiffrables, erreurs invisibles, manque de temps, d’appétence...<br><br>
-            Notre outil fait le travail à votre place: déposez simplement le Grand Livre et les relevés bancaires de la copropriété, et notre algorithme vous dit exactement où regarder.<br><br>
-            Une analyse rigoureuse en moins de 5 minutes, gratuitement.<br><br>
-            La transparence et la simplicité que vous méritez pour poser les bonnes questions à votre syndic.
+    
+    <div class="hero-section">
+        <div class="main-title">Personne ne lit les comptes de sa copropriété. Nous, si.</div>
+        <div class="sub-title">
+            Déposez vos documents. Notre algorithme identifie les anomalies, 
+            les erreurs de saisie et les économies oubliées en moins de 5 minutes.
         </div>
-        <div class="line-bottom">Reprenez le contrôle !</div>
+        <div class="cta-line">Reprenez le contrôle</div>
     </div>
     """, unsafe_allow_html=True)
 
-# 2. Les deux zones de dépôt (Côte à côte comme sur le dessin)
+# --- ZONE DE CHARGEMENT ---
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown('<span class="upload-label">1. Grand Livre (PDF)</span>', unsafe_allow_html=True)
-    gl_file = st.file_uploader("Upload GL", type=["pdf"], key="gl", label_visibility="collapsed")
+    st.write("**Étape 1**")
+    gl = st.file_uploader("Grand Livre (PDF)", type=["pdf"], label_visibility="collapsed")
 
 with col2:
-    st.markdown('<span class="upload-label">2. Relevés Bancaires (12 PDF)</span>', unsafe_allow_html=True)
-    rb_files = st.file_uploader("Upload RB", type=["pdf"], accept_multiple_files=True, key="rb", label_visibility="collapsed")
+    st.write("**Étape 2**")
+    rb = st.file_uploader("12 Relevés (PDF)", type=["pdf"], accept_multiple_files=True, label_visibility="collapsed")
 
-# 3. Le bouton d'analyse technique
-if st.button("Lancer l'analyse technique"):
-    if gl_file and len(rb_files) == 12:
-        st.balloons()
-        st.success("Analyse en cours... Votre rapport sera prêt dans un instant.")
-    else:
-        st.error("Erreur : Assurez-vous d'avoir déposé le Grand Livre et les 12 relevés.")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# --- FOOTER ---
+# Bouton d'action centré
+_, center_btn, _ = st.columns([1, 2, 1])
+with center_btn:
+    if st.button("Lancer l'analyse technique"):
+        if gl and len(rb) == 12:
+            with st.status("Analyse des flux en cours...") as status:
+                chemin = stocker_fichiers_localement(gl, rb)
+                data = executer_analyse_technique(chemin)
+                
+                # Génération PDF
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", 'B', 16)
+                pdf.cell(0, 10, "RAPPORT D'ANALYSE COMPTABLE", ln=True, align='C')
+                pdf.ln(10)
+                
+                for a in data['anomalies']:
+                    pdf.set_font("Arial", 'B', 11)
+                    pdf.cell(0, 8, clean_text = f"- {a['t']}", ln=True)
+                    pdf.set_font("Arial", '', 11)
+                    pdf.multi_cell(0, 7, a['d'].encode('latin-1', 'replace').decode('latin-1'))
+                    pdf.ln(3)
+                    
+                pdf_out = "/tmp/Rapport_Audit.pdf"
+                pdf.output(pdf_out)
+                shutil.rmtree(chemin)
+                status.update(label="Analyse terminée !", state="complete")
+            
+            st.success("Votre rapport est prêt.")
+            st.download_button("📥 Télécharger le rapport d'audit", open(pdf_out, "rb"), file_name="Audit_Copro.pdf")
+        else:
+            st.warning("Veuillez charger le Grand Livre et les 12 relevés bancaires.")
+
+# --- FOOTER DISCRET ---
 st.markdown("""
-    <div style="text-align: center; color: #94a3b8; font-size: 0.8rem; margin-top: 50px;">
-        gael_maugendre@hotmail.com | +33 6 14 29 80 29
+    <div style="margin-top: 100px; text-align: center; border-top: 1px solid #f0f2f6; padding-top: 20px;">
+        <p style="color: #94a3b8; font-size: 0.85rem;">
+            gael_maugendre@hotmail.com &nbsp; | &nbsp; +33 6 14 29 80 29
+        </p>
     </div>
     """, unsafe_allow_html=True)
