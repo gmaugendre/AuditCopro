@@ -91,14 +91,15 @@ with col2:
                 os.remove(final_report_path)
                 
                 st.success("Traitement terminé !")
-                
+
+
                 # 3. Téléchargement du rapport
-                with open(final_report_path, "rb") as pdf_file:
-                    st.download_button(
-                        label="📥 Télécharger le rapport d'audit",
-                        data=pdf_file,
-                        file_name="rapport_audit_comptable.pdf",
-                        mime="application/pdf"
+                # On passe 'pdf_data' (la mémoire) et NON le chemin du fichier
+                st.download_button(
+                    label="📥 Télécharger le rapport d'audit",
+                    data=pdf_data,  # Utilise les données lues précédemment
+                    file_name="rapport_audit_comptable.pdf",
+                    mime="application/pdf
                     )
     else:
         st.info("Veuillez uploader tous les documents pour activer le traitement.")
