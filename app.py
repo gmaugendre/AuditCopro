@@ -2,8 +2,9 @@ import streamlit as st
 import os
 import shutil
 import pandas as pd
-import numpy as np
+import io
 import json
+import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 from google import genai
@@ -11,9 +12,9 @@ from google.genai import types
 from thefuzz import fuzz
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="Audit Copro Direct", layout="wide")
+st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
 
-UPLOAD_DIR = "storage_audit"
+UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
@@ -22,134 +23,131 @@ client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 # --- FONCTIONS UTILITAIRES ---
 
-def save_uploaded_file(uploaded_file, sub_folder):
-    p = Path(UPLOAD_DIR) / sub_folder / uploaded_file.name
+def save_uploaded_file(uploaded_file, sub):
+    p = Path(UPLOAD_DIR) / sub / uploaded_file.name
     p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    with open(p, "wb") as f: f.write(uploaded_file.getbuffer())
     return p
 
-# --- EXTRACTION SANS NETTOYAGE ---
+# --- FONCTIONS D'EXTRACTION ---
 
-def extract_data_via_ia(pdf_path, prompt):
-    """Extrait les données en JSON pur selon le prompt fourni."""
+def convert_pdf_to_excel(pdf_path):
+    """Extraction du Grand Livre sans mapping complexe."""
     try:
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
-        
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=[types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"), prompt],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            )
+            contents=[
+                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                "Extraire les colonnes : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
+            ],
+            config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         df = pd.DataFrame(json.loads(response.text))
-        
-        # Conversion minimale pour les calculs (numérique et dates)
+        # Conversion forcée minimale pour les calculs
         if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
-        
         return df
-    except Exception as e:
-        st.error(f"Erreur d'extraction sur {pdf_path.name} : {e}")
-        return pd.DataFrame()
+    except: return pd.DataFrame()
 
-# --- MOTEUR D'AUDIT (SORTIE RAPPORT) ---
+def extract_releve_data(pdf_path):
+    """Extraction des Relevés sans mapping complexe."""
+    try:
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                "Extraire transactions : DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
+            ],
+            config=types.GenerateContentConfig(response_mime_type="application/json")
+        )
+        df = pd.DataFrame(json.loads(response.text))
+        if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
+        if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
+        if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
+        return df
+    except: return pd.DataFrame()
+
+# --- MOTEUR D'AUDIT ---
 
 def fuzzy_check_rejet(libelle):
-    cibles = ["REJET", "IMPAYE", "ANNULATION", "REFUS", "ECHEC", "SANS PROVISION"]
-    lib_clean = str(libelle).upper()
+    cibles = ["REJET", "IMPAYE", "ANNULATION", "REFUS", "ECHEC"]
     for mot in cibles:
-        if fuzz.partial_ratio(mot, lib_clean) >= 90: return True
+        if fuzz.partial_ratio(mot, str(libelle).upper()) >= 90: return True
     return False
 
-def generer_audit_final(df_gl, df_bk):
-    res = []
+def generer_rapport_audit(df_gl, df_bank):
+    r = [] 
+    date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     
-    # Date de référence
-    valid_dates = df_gl['DATE'].dropna() if 'DATE' in df_gl.columns else []
-    date_ref = valid_dates.max() if len(valid_dates) > 0 else datetime.now()
+    r.append("="*80)
+    r.append(f"RAPPORT D'AUDIT COMPTABLE - GÉNÉRÉ LE {datetime.now().strftime('%d/%m/%Y')}")
+    r.append(f"Période analysée jusqu'au : {date_ref.strftime('%d/%m/%Y')}")
+    r.append("="*80 + "\n")
 
-    res.append("═"*85)
-    res.append(f"   RAPPORT D'AUDIT GÉNÉRAL - {datetime.now().strftime('%d/%m/%Y')}")
-    res.append(f"   PÉRIODE ANALYSÉE JUSQU'AU : {date_ref.strftime('%d/%m/%Y')}")
-    res.append("═"*85 + "\n")
-
-    # A : TROP-PAYÉS
-    res.append("🔍 ANALYSE DES TROP-PAYÉS (401)")
+    # A. TROP-PAYÉS
+    r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         if not df_401.empty:
-            syn = df_401.groupby(['NUMERO_COMPTE', 'NOM_COMPTE']).agg({'DEBIT':'sum', 'CREDIT':'sum'}).reset_index()
-            trop = syn[(syn['CREDIT'] - syn['DEBIT']) < -1.00]
+            synthese = df_401.groupby(['NUMERO_COMPTE', 'NOM_COMPTE']).agg({'DEBIT':'sum', 'CREDIT':'sum'}).reset_index()
+            trop = synthese[(synthese['CREDIT'] - synthese['DEBIT']) < -1.00]
             if not trop.empty:
-                for _, r in trop.iterrows():
-                    res.append(f"   ❌ {r['NOM_COMPTE']} : {abs(r['CREDIT']-r['DEBIT']):.2f}€ à récupérer.")
-            else: res.append("   ✅ Aucun trop-payé détecté.")
+                for _, row in trop.iterrows():
+                    r.append(f" - ❌ {row['NOM_COMPTE']} : {abs(row['CREDIT']-row['DEBIT']):.2f}€ à récupérer.")
+            else: r.append(" - ✅ Aucun trop-payé.")
 
-    # B : DOUBLONS
-    res.append("\n🔍 ANALYSE DES DOUBLONS (CLASSE 6)")
-    df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)]
-    doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
-    if not doublons.empty:
-        res.append(f"   ⚠️ {len(doublons)//2} alertes de doublons potentiels identifiées.")
-    else: res.append("   ✅ Aucun doublon détecté.")
-
-    # D : REJETS
-    res.append("\n🔍 ANALYSE DES REJETS BANCAIRES")
-    rejets = df_bk[df_bk['LIBELLE'].apply(fuzzy_check_rejet) & (df_bk['DEBIT'] > 0)]
-    df_450 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('450')]
-    alertes_r = 0
-    for _, rej in rejets.iterrows():
-        match = df_450[(abs(df_450['DEBIT'] - rej['DEBIT']) < 0.05)]
-        if match.empty:
-            res.append(f"   ❌ REJET NON RÉPERCUTÉ : {rej['DATE'].strftime('%d/%m/%Y')} | {rej['DEBIT']:.2f}€ | {rej['LIBELLE']}")
-            alertes_r += 1
-    if alertes_r == 0: res.append("   ✅ Tous les rejets bancaires ont été imputés.")
-
-    # I : FONDS ALUR
-    res.append("\n🔍 CONTRÔLE DU FONDS DE TRAVAUX (LOI ALUR)")
+    # G. FONDS ALUR
+    r.append("\n[SECTION G] CONTRÔLE FONDS ALUR")
     try:
-        s105 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')]['CREDIT'].sum() - df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')]['DEBIT'].sum()
-        s502 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')]['DEBIT'].sum() - df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')]['CREDIT'].sum()
-        res.append(f"   💰 Réserves (105) : {s105:.2f}€ | Placement (502) : {s502:.2f}€")
+        s105 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')]['CREDIT'].sum()
+        s502 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')]['DEBIT'].sum()
         if (s105 - s502) > 10:
-            res.append(f"   ❌ ANOMALIE : {s105 - s502:.2f}€ d'écart (fonds non placés).")
-        else: res.append("   ✅ Fonds de travaux intégralement placés.")
-    except: res.append("   ⚠️ Données insuffisantes pour l'analyse ALUR.")
+            r.append(f" - ❌ ANOMALIE : {s105 - s502:.2f}€ manquants sur le placement.")
+        else: r.append(" - ✅ Placement ALUR conforme.")
+    except: r.append(" - ⚠️ Analyse ALUR impossible.")
 
-    res.append("\n" + "═"*85 + "\n   FIN DU RAPPORT")
-    return "\n".join(res)
+    r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
+    return "\n".join(r)
 
-# --- INTERFACE ---
+# --- INTERFACE STREAMLIT (RETOUR À LA VERSION ORIGINALE) ---
 
-st.title("🛡️ Audit Copropriété Expert")
+st.title("Système d'Audit Automatisé")
 
-c1, c2 = st.columns(2)
-with c1:
-    gl_up = st.file_uploader("Grand Livre (PDF)", type="pdf")
-with c2:
-    bk_ups = st.file_uploader("12 Relevés (PDF)", type="pdf", accept_multiple_files=True)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("### 1. Documents")
+    gl_file = st.file_uploader("Grand Livre (PDF)", type="pdf")
+    releves_files = st.file_uploader("12 Relevés (PDF)", type="pdf", accept_multiple_files=True)
 
-if gl_up and bk_ups:
-    if st.button("Lancer l'audit", type="primary"):
-        with st.spinner("Traitement IA..."):
-            # Extraction Grand Livre
-            gl_prompt = "Extraire tableau avec clés EXACTES : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT."
-            df_gl = extract_data_via_ia(save_uploaded_file(gl_up, "gl"), gl_prompt)
+with col2:
+    st.markdown("### 2. Traitement")
+    if gl_file and releves_files and len(releves_files) == 12:
+        if st.button("Générer le rapport complet", type="primary"):
+            progress = st.progress(0)
             
-            # Extraction Relevés
-            bk_prompt = "Extraire transactions avec clés EXACTES : DATE, LIBELLE, DEBIT, CREDIT."
-            list_bk = [extract_data_via_ia(save_uploaded_file(f, "bk"), bk_prompt) for f in bk_ups]
-            df_bk_all = pd.concat(list_bk, ignore_index=True)
+            gl_path = save_uploaded_file(gl_file, "gl")
+            gl_df = convert_pdf_to_excel(gl_path)
+            progress.progress(30)
             
-            # Audit
-            rapport = generer_audit_final(df_gl, df_bk_all)
+            all_releves = []
+            for i, f in enumerate(releves_files):
+                p_rb = save_uploaded_file(f, "rb")
+                all_releves.append(extract_releve_data(p_rb))
+                progress.progress(30 + int((i/12)*60))
             
-            st.success("Audit terminé.")
-            st.download_button("📥 Télécharger le Rapport", rapport, "Audit.txt")
+            bank_df = pd.concat(all_releves, ignore_index=True)
+            rapport_final = generer_rapport_audit(gl_df, bank_df)
+            
+            progress.progress(100)
+            st.success("Analyse terminée.")
+            st.download_button("📥 Télécharger le Rapport (TXT)", rapport_final, "Rapport_Audit.txt")
             
             shutil.rmtree(UPLOAD_DIR)
             os.makedirs(UPLOAD_DIR)
+    else:
+        st.info("En attente des documents (1 GL + 12 Relevés)...")
