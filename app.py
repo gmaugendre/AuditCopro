@@ -37,24 +37,7 @@ def traiter_donnees(gl_path, releves_paths):
         
     return report_path
 
-"""
-def traiter_donnees(gl_path, releves_paths):
 
-    Fonction de traitement (actuellement vide).
-    C'est ici que tu mettras ta logique d'analyse PDF (PyMuPDF, Camelot, etc.)
-    """
-    # Simulation de traitement
-    st.info("Analyse des fichiers en cours... (Logique à implémenter)")
-    
-    # Chemin vers le rapport généré (exemple)
-    report_path = Path(UPLOAD_DIR) / "rapport_final.pdf"
-    
-    # Création d'un fichier PDF vide pour la démo (si il n'existe pas)
-    with open(report_path, "w") as f:
-        f.write("Ceci est un rapport généré automatiquement.")
-        
-    return report_path
-"""
 # --- INTERFACE UTILISATEUR ---
 
 st.title("📂 Assistant d'analyse des comptes")
