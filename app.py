@@ -41,18 +41,18 @@ def traiter_donnees(gl_path, releves_paths):
 
 # --- INTERFACE UTILISATEUR ---
 
-st.title("📂 Assistant de Révision Comptable")
+st.title("📂 Assistant d'analyse des comptes")
 st.markdown("---")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.header("1. Importation des données")
+    st.header("1. Import des données")
     
     # Upload du Grand Livre
     gl_file = st.file_uploader("Déposez le Grand Livre (PDF)", type="pdf", key="gl")
     
-    # Upload des 12 relevés
+    # Upload des 12 relevés bancaires
     releves_files = st.file_uploader(
         "Déposez les 12 relevés de compte (PDF)", 
         type="pdf", 
@@ -61,20 +61,33 @@ with col1:
     )
 
 with col2:
-    st.header("2. Actions & Statut")
+    st.header("2. Analyse et rapport")
     
     if gl_file and releves_files:
         if len(releves_files) != 12:
             st.warning(f"Attention : Vous avez déposé {len(releves_files)} relevé(s) sur 12 attendus.")
         
         if st.button("Lancer le traitement", type="primary"):
-            with st.spinner("Enregistrement et analyse..."):
+            with st.spinner("Analyse en cours..."):
                 # 1. Sauvegarde sur le serveur
                 gl_saved_path = save_uploaded_file(gl_file, "grand_livre")
                 paths_releves = [save_uploaded_file(f, "releves") for f in releves_files]
                 
                 # 2. Traitement
                 final_report_path = traiter_donnees(gl_saved_path, paths_releves)
+
+                # --- NETTOYAGE IMMÉDIAT DES SOURCES ---
+                # On supprime les dossiers 'grand_livre' et 'releves'
+                shutil.rmtree(Path(UPLOAD_DIR) / "grand_livre")
+                shutil.rmtree(Path(UPLOAD_DIR) / "releves")
+
+                # --- PRÉPARATION DU TÉLÉCHARGEMENT ---
+                # On lit le rapport en mémoire pour pouvoir supprimer le fichier physique
+                with open(final_report_path, "rb") as f:
+                    pdf_data = f.read()
+                
+                # On supprime le rapport du serveur
+                os.remove(final_report_path)
                 
                 st.success("Traitement terminé !")
                 
