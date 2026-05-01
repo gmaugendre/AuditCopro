@@ -107,7 +107,7 @@ with col1:
 
 with col2:
     st.markdown("### 2. Traitement")
-    if gl_file and releves_files and len(releves_files) == 12:
+    if gl_file and releves_files and len(releves_files) == 1:  ############################12
         if st.button("Générer le rapport complet", type="primary"):
             progress = st.progress(0)
             
