@@ -32,12 +32,11 @@ def save_uploaded_file(uploaded_file, sub):
 # --- FONCTIONS D'EXTRACTION ---
 
 def convert_pdf_to_excel(pdf_path):
-    """Extraction du Grand Livre sans mapping complexe."""
     try:
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 "Extraire les colonnes : NUMERO_COMPTE, NOM_COMPTE, DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
@@ -45,7 +44,6 @@ def convert_pdf_to_excel(pdf_path):
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         df = pd.DataFrame(json.loads(response.text))
-        # Conversion forcée minimale pour les calculs
         if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
@@ -53,12 +51,11 @@ def convert_pdf_to_excel(pdf_path):
     except: return pd.DataFrame()
 
 def extract_releve_data(pdf_path):
-    """Extraction des Relevés sans mapping complexe."""
     try:
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=[
                 types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
                 "Extraire transactions : DATE, LIBELLE, DEBIT, CREDIT. JSON uniquement."
@@ -74,12 +71,6 @@ def extract_releve_data(pdf_path):
 
 # --- MOTEUR D'AUDIT ---
 
-def fuzzy_check_rejet(libelle):
-    cibles = ["REJET", "IMPAYE", "ANNULATION", "REFUS", "ECHEC"]
-    for mot in cibles:
-        if fuzz.partial_ratio(mot, str(libelle).upper()) >= 90: return True
-    return False
-
 def generer_rapport_audit(df_gl, df_bank):
     r = [] 
     date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
@@ -89,7 +80,7 @@ def generer_rapport_audit(df_gl, df_bank):
     r.append(f"Période analysée jusqu'au : {date_ref.strftime('%d/%m/%Y')}")
     r.append("="*80 + "\n")
 
-    # A. TROP-PAYÉS
+    # Section A : Trop-payés
     r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
@@ -100,21 +91,11 @@ def generer_rapport_audit(df_gl, df_bank):
                 for _, row in trop.iterrows():
                     r.append(f" - ❌ {row['NOM_COMPTE']} : {abs(row['CREDIT']-row['DEBIT']):.2f}€ à récupérer.")
             else: r.append(" - ✅ Aucun trop-payé.")
-
-    # G. FONDS ALUR
-    r.append("\n[SECTION G] CONTRÔLE FONDS ALUR")
-    try:
-        s105 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')]['CREDIT'].sum()
-        s502 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')]['DEBIT'].sum()
-        if (s105 - s502) > 10:
-            r.append(f" - ❌ ANOMALIE : {s105 - s502:.2f}€ manquants sur le placement.")
-        else: r.append(" - ✅ Placement ALUR conforme.")
-    except: r.append(" - ⚠️ Analyse ALUR impossible.")
-
+    
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
     return "\n".join(r)
 
-# --- INTERFACE STREAMLIT (RETOUR À LA VERSION ORIGINALE) ---
+# --- INTERFACE STREAMLIT ---
 
 st.title("Système d'Audit Automatisé")
 
@@ -130,6 +111,7 @@ with col2:
         if st.button("Générer le rapport complet", type="primary"):
             progress = st.progress(0)
             
+            # Extraction
             gl_path = save_uploaded_file(gl_file, "gl")
             gl_df = convert_pdf_to_excel(gl_path)
             progress.progress(30)
@@ -141,12 +123,34 @@ with col2:
                 progress.progress(30 + int((i/12)*60))
             
             bank_df = pd.concat(all_releves, ignore_index=True)
-            rapport_final = generer_rapport_audit(gl_df, bank_df)
             
+            # Audit
+            rapport_final = generer_rapport_audit(gl_df, bank_df)
             progress.progress(100)
+            
             st.success("Analyse terminée.")
             st.download_button("📥 Télécharger le Rapport (TXT)", rapport_final, "Rapport_Audit.txt")
+
+            # --- NOUVEAU : APERÇU DES DONNÉES CONVERTIES ---
+            st.markdown("---")
+            st.markdown("### 🛠️ Aperçu des conversions IA")
             
+            with st.expander("Voir le Grand Livre converti"):
+                st.dataframe(gl_df)
+                # Optionnel : Télécharger le GL en Excel
+                output_gl = io.BytesIO()
+                with pd.ExcelWriter(output_gl, engine='openpyxl') as writer:
+                    gl_df.to_excel(writer, index=False)
+                st.download_button("💾 Télécharger GL en Excel", output_gl.getvalue(), "GL_converti.xlsx")
+
+            with st.expander("Voir les Relevés Bancaires cumulés"):
+                st.dataframe(bank_df)
+                output_bk = io.BytesIO()
+                with pd.ExcelWriter(output_bk, engine='openpyxl') as writer:
+                    bank_df.to_excel(writer, index=False)
+                st.download_button("💾 Télécharger Banque en Excel", output_bk.getvalue(), "Banque_convertie.xlsx")
+
+            # Nettoyage
             shutil.rmtree(UPLOAD_DIR)
             os.makedirs(UPLOAD_DIR)
     else:
