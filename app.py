@@ -31,22 +31,26 @@ def convert_pdf_to_excel(pdf_path):
     try:
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
+
+        prompt = """Agis comme un extracteur de données comptables de haute précision.
+        Analyse ce fichier PDF et extrais chaque écriture comptable dans un fichier EXCEL.
+        Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
+        Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
+        Si les colonnes NUMERO COMPTE ou NOM COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
+        Si les colonnes CODE JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
+        Mets les en-têtes des colonnes NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
+        Les dates doivent être au format date JJ/MM/AAAA.
+        Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format numérique 1234.56. Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
+        N'affiche aucun autre texte."""       ]
+
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=[
-                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-"""Agis comme un extracteur de données comptables de haute précision.
-Analyse ce fichier PDF et extrais chaque écriture comptable dans un fichier EXCEL.
-Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
-Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
-Si les colonnes NUMERO COMPTE ou NOM COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
-Si les colonnes CODE JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
-Mets les en-têtes des colonnes NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
-Les dates doivent être au format date JJ/MM/AAAA.
-Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format numérique 1234.56. Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
-N'affiche aucun autre texte."""       ]
+            contents=[types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"), prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            )
         )
-        return pd.DataFrame(json.loads(response.text.replace("```json", "").replace("```", "").strip()))
+        return pd.DataFrame(json.loads(response.text))
     except: return pd.DataFrame()
 
 def extract_releve_data(pdf_path):
