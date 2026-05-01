@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from pathlib import Path
+import shutil
 
 # --- CONFIGURATION DE L'APPLI ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
