@@ -451,7 +451,6 @@ def generer_rapport_audit(df_gl, df_bank):
 
 # --- INTERFACE STREAMLIT ---
 
-# Création de deux colonnes : 4/5 pour le texte, 1/5 pour le logo
 col_texte, col_logo = st.columns([4, 1], vertical_alignment="center")
 
 with col_texte:
@@ -460,7 +459,7 @@ with col_texte:
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
-    st.image("Logo.png", use_container_width=True, width=150)
+    st.image("Logo.png", use_container_width=True, width=300)
 st.markdown("---")
 # st.title("Assistant d'analyse des comptes de copropriété")
 # st.subheader("Conseils syndicaux : reprenez le contrôle !")
