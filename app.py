@@ -12,6 +12,7 @@ from google.genai import types
 from thefuzz import fuzz
 from scipy.optimize import linear_sum_assignment
 from fpdf import FPDF
+from pypdf import PdfWriter
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -33,6 +34,19 @@ def save_uploaded_file(uploaded_file, sub):
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "wb") as f: f.write(uploaded_file.getbuffer())
     return p
+
+# FONCTION DE FUSION DES RELEVES DE COMPTE PDF
+def merge_pdfs(uploaded_files, sub):
+    merger = PdfWriter()
+    for pdf in uploaded_files:
+        merger.append(pdf)
+    
+    output_path = Path(UPLOAD_DIR) / sub / "releves_fusionnes.pdf"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_path, "wb") as f:
+        merger.write(f)
+    return output_path
 
 # --- FONCTIONS D'EXTRACTION ---
 
@@ -475,7 +489,7 @@ with col1:
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 ############## METTRE 12 PLUS TARD
+    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) >= 1
     if documents_prets:
         st.markdown(" ")
         st.markdown(" ")
@@ -487,20 +501,20 @@ with col2:
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
+                progress_bar.progress(30)
                 
-                all_releves = []
-                for i, f in enumerate(releves_files):
-                    status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
-                    p_rb = save_uploaded_file(f, "rb")
-                    all_releves.append(extract_releve_data(p_rb))
-                    progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 40))
+                # On fusionne les relevés de banque pdf
+                merged_bank_path = merge_pdfs(releves_files, "rb")
                 
-                bank_df = pd.concat(all_releves, ignore_index=True)
-                
+                # Un SEUL appel Gemini pour tous les relevés d'un coup
+                status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
+                bank_df = extract_releve_data(merged_bank_path)
+                progress_bar.progress(50)
+
                 # Audit
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
                 rapport_final = generer_rapport_audit(gl_df, bank_df)
-                progress.progress(75)
+                progress_bar.progress(60)
     
     
                 # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
@@ -543,7 +557,7 @@ with col2:
                         
                     # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
                     rapport_final = rapport_final + analyse_contrat
-                    progress.progress(85)
+                    progress.progress(80)
     
     
                 
