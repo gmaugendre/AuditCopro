@@ -495,7 +495,9 @@ with col2:
             Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
             Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
             Prudence légale : Utilise le conditionnel si nécessaire.
-            Structure du rapport : Introduction, Sections thématiques, Conclusion."""
+            Structure du rapport : Introduction, Sections thématiques, Conclusion.
+            Et ajoute en annexes de ce rapport de synthèse un strict copier coller du rapport technique (c'est à dire des données d'analyse brute fournies).
+            """
 
             prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
         
@@ -544,7 +546,7 @@ with col2:
             
             # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
-            st.markdown("### 🛠️ Aperçu des conversions IA")
+            st.markdown("### 🛠️ Aperçu des conversions")
             
             with st.expander("Voir le Grand livre converti"):
                 st.dataframe(gl_df)
