@@ -488,17 +488,16 @@ with col1:
     contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
 
 # --- Sécurité anti-doublons (noms et tailles) ---
-    fichiers_doublons = False
+fichiers_doublons = False
     if releves_files:
-        # 1. Vérification par nom
-        noms_fichiers = [f.name for f in releves_files]
-        if len(noms_fichiers) != len(set(noms_fichiers)):
-            st.error("⚠️ Erreur : Deux fichiers portent le même nom.")
+        noms = [f.name for f in releves_files]
+        tailles = [f.size for f in releves_files]
+        
+        if len(noms) != len(set(noms)):
+            st.error("⚠️ Doublon détecté : certains fichiers portent le même nom.")
             fichiers_doublons = True
-        # 2. Vérification par taille (size est en octets)
-        tailles_fichiers = [f.size for f in releves_files]
-        if len(tailles_fichiers) != len(set(tailles_fichiers)):
-            st.error("⚠️ Erreur : Deux fichiers ont exactement la même taille. Il s'agit probablement d'un doublon.")
+        elif len(tailles) != len(set(tailles)):
+            st.error("⚠️ Doublon détecté : certains fichiers ont la même taille (contenu probablement identique).")
             fichiers_doublons = True
 
 with col2:
