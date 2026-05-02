@@ -487,9 +487,23 @@ with col1:
     releves_files = st.file_uploader("12 relevés bancaires mensuels (pdf)", type="pdf", accept_multiple_files=True)
     contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
 
+# --- Sécurité anti-doublons (noms et tailles) ---
+    fichiers_doublons = False
+    if releves_files:
+        # 1. Vérification par nom
+        noms_fichiers = [f.name for f in releves_files]
+        if len(noms_fichiers) != len(set(noms_fichiers)):
+            st.error("⚠️ Erreur : Deux fichiers portent le même nom.")
+            fichiers_doublons = True
+        # 2. Vérification par taille (size est en octets)
+        tailles_fichiers = [f.size for f in releves_files]
+        if len(tailles_fichiers) != len(set(tailles_fichiers)):
+            st.error("⚠️ Erreur : Deux fichiers ont exactement la même taille. Il s'agit probablement d'un doublon.")
+            fichiers_doublons = True
+
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) >= 1
+    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 and not fichiers_doublons  ####################REMETTTRE 12 APRES DEBOGAGE
     if documents_prets:
         st.markdown(" ")
         st.markdown(" ")
