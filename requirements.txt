@@ -6,3 +6,4 @@ openpyxl
 numpy
 thefuzz
 scipy
+reportlab
