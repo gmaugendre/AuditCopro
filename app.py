@@ -486,8 +486,104 @@ with col2:
             rapport_final = generer_rapport_audit(gl_df, bank_df)
             progress.progress(100)
             
-            st.success("Analyse terminée.")
-            st.download_button("📥 Télécharger le rapport.", rapport_final, "Rapport_Audit.txt")
+            # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+            instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
+Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
+
+Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
+La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
+
+Les contraintes de rédaction:
+Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
+Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs (ex: 'faute', 'vol', 'incompétence') par des termes neutres ou d'investigation (ex: 'écart à clarifier', 'écriture en suspens', 'besoin de précision', 'anomalie apparente').
+Prudence légale : N'utilise pas d'adjectifs excessifs. Présente les faits comme des éléments nécessitant une vérification contradictoire. Utilise le conditionnel si nécessaire.
+
+Structure du rapport :
+Une brève introduction expliquant la démarche de contrôle.
+Des sections thématiques (Trésorerie, Comptes d'attente, Fournisseurs, Rapprochement bancaire).
+Pour chaque point : explique l'enjeu (pourquoi c'est important pour la copropriété) puis expose le constat.
+Une conclusion sous forme de 'points d'attention' pour préparer la prochaine réunion avec le syndic."""
+
+            prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
+            
+            try:
+                response = client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=prompt_complet
+                )
+                synthese_texte = response.text
+                
+                # Conversion en PDF via ReportLab
+                pdf_buffer = io.BytesIO()
+                doc = SimpleDocTemplate(
+                    pdf_buffer,
+                    pagesize=A4,
+                    rightMargin=40,
+                    leftMargin=40,
+                    topMargin=40,
+                    bottomMargin=40
+                )
+                
+                styles = getSampleStyleSheet()
+                style_titre = ParagraphStyle(
+                    'TitreDoc',
+                    parent=styles['Heading1'],
+                    fontName='Helvetica-Bold',
+                    fontSize=16,
+                    leading=20,
+                    textColor=colors.HexColor('#1A365D'),
+                    spaceAfter=15
+                )
+                
+                style_corps = ParagraphStyle(
+                    'CorpsDoc',
+                    parent=styles['Normal'],
+                    fontName='Helvetica',
+                    fontSize=10,
+                    leading=14,
+                    textColor=colors.HexColor('#2D3748'),
+                    spaceAfter=8
+                )
+                
+                story = []
+                story.append(Paragraph("Rapport de Synthèse de Copropriété", style_titre))
+                story.append(Spacer(1, 10))
+                
+                lignes = synthese_texte.split('\n')
+                for ligne in lignes:
+                    ligne_nettoyee = ligne.strip()
+                    if not ligne_nettoyee:
+                        story.append(Spacer(1, 6))
+                        continue
+                    if ligne_nettoyee.startswith('#'):
+                        titre_texte = ligne_nettoyee.lstrip('#').strip()
+                        style_h = ParagraphStyle(
+                            'SubHeading',
+                            parent=styles['Heading2'],
+                            fontName='Helvetica-Bold',
+                            fontSize=12,
+                            leading=16,
+                            textColor=colors.HexColor('#2B6CB0'),
+                            spaceBefore=10,
+                            spaceAfter=6
+                        )
+                        story.append(Paragraph(titre_texte, style_h))
+                    elif ligne_nettoyee.startswith(('*', '-')):
+                        texte_puce = ligne_nettoyee.lstrip('*-').strip()
+                        texte_puce = texte_puce.replace('**', '<b>', 1).replace('**', '</b>', 1)
+                        story.append(Paragraph(f"• {texte_puce}", style_corps))
+                    else:
+                        texte_corps = ligne_nettoyee.replace('**', '<b>').replace('**', '</b>')
+                        story.append(Paragraph(texte_corps, style_corps))
+                        
+                doc.build(story)
+                pdf_data = pdf_buffer.getvalue()
+                
+                st.success("Analyse terminée.")
+                st.download_button("📥 Télécharger le rapport de synthèse (PDF)", pdf_data, "Rapport_Synthese.pdf", mime="application/pdf")
+                
+            except Exception as e:
+                st.error(f"❌ Erreur lors de la génération du PDF avec l'IA : {e}")
 
             # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
