@@ -603,13 +603,13 @@ with col2:
                 # Un appel IA pour lire le contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
                 if contrat_file is not None:
-                with st.status("Analyse en cours...") as status:
-                # On passe directement l'objet contrat_file
-                contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
-                if contrat_df:
-                    status.update(label="✅ Tarifs extraits !", state="complete")
-                    st.json(contrat_df) # Pour vérifier le résultat
-                progress_bar.progress(80)
+                    with st.status("Analyse en cours...") as status:
+                        # On passe directement l'objet contrat_file
+                        contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
+                        if contrat_df:
+                            status.update(label="✅ Tarifs extraits !", state="complete")
+                            st.json(contrat_df) # Pour vérifier le résultat
+                            progress_bar.progress(80)
 
                 
 
