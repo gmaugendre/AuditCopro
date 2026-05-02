@@ -27,6 +27,8 @@ client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 GEMINI_MODEL="gemini-2.5-flash"
 #GEMINI_MODEL="gemini-2.0-flash"
 
+##############################################################################################################################################################"
+
 # --- FONCTIONS UTILITAIRES ---
 
 def save_uploaded_file(uploaded_file, sub):
@@ -47,6 +49,8 @@ def merge_pdfs(uploaded_files, sub):
     with open(output_path, "wb") as f:
         merger.write(f)
     return output_path
+
+##############################################################################################################################################################"
 
 # --- FONCTIONS D'EXTRACTION ---
 
@@ -130,6 +134,20 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     """
     Extrait les tarifs du contrat et les range dans une grille fixe, 
     indépendamment de la formulation utilisée par le syndic.
+    En sortie, on a des tarifs du type:
+    JSON
+    "forfait_annuel": 15000.0,
+    "vacation_horaire": 165.0,
+    "mise_en_demeure": 45.0,
+    "relance_simple": 0.0,
+    "etat_date": 380.0,
+    "opposition_mutation": 120.0,
+    "mise_en_demeure_tiers": 45.0,
+    "injonction_payer": 0.0,
+    "reprise_compta_forfait": 0.0,
+    "reprise_compta_lot": 0.0,
+    "ag_supplementaire": 850.0,
+    "copie_pv": 15.0
     """
     # Lecture des octets directement depuis la mémoire
     pdf_bytes = uploaded_file.read() 
@@ -185,7 +203,7 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
         return {}
 
 
-
+##############################################################################################################################################################"
 
 # --- MOTEUR D'AUDIT ---
 
@@ -526,12 +544,65 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-    # La variable 'df_contrat' contient les tarifs du syndic à exploiter vs. les facturations réelles
-    # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
-    df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
-    ecritures_syndic = df_honoraires.to_string(index=False)
+    r.append("\n" + "="*80)
+    r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
+    r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
+    r.append("   L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
+
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
+        
+        # 1. Filtrage des honoraires sur df_gl
+        df_honoraires = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))) & (df_gl['DEBIT'] > 0)].copy()
+        
+        # 2. Mapping pour la logique floue (Libellé cible : Clé dans ton dictionnaire df_contrat)
+        mapping_audit = {
+            "Mise en demeure": "mise_en_demeure",
+            "Relance": "relance_simple",
+            "Etat daté": "etat_date",
+            "Opposition mutation": "opposition_mutation",
+            "Vacation horaire": "vacation_horaire",
+            "Copie PV": "copie_pv",
+            "Assemblée Générale": "ag_supplementaire",
+            "Injonction de payer": "injonction_payer"
+        }
+
+        anomalies_detectees = 0
+        
+        if not df_honoraires.empty:
+            for _, row in df_honoraires.iterrows():
+                libelle_brut = str(row['LIBELLE'])
+                montant_paye = float(row['DEBIT'])
+                date_val = row['DATE']
+                date_str = date_val.strftime('%d/%m/%Y') if pd.notnull(date_val) else "N/A"
+                
+                trouve = False
+
+                for nom_cible, cle_contrat in mapping_audit.items():
+                    # Comparaison floue entre le libellé de l'écriture et le nom cible
+                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 80:
+                        trouve = True
+                        # Extraction du tarif depuis le dictionnaire df_contrat
+                        tarif_contrat = df_contrat.get(cle_contrat, 0.0)
+
+                        if tarif_contrat == 0:
+                            r.append(f"   ❌ ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"      👉 Prestation non tarifée ou incluse dans le forfait selon le contrat.")
+                            anomalies_detectees += 1
+                        elif montant_paye > (tarif_contrat + 0.10):
+                            r.append(f"   ❌ SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"      👉 Le tarif contractuel est de {tarif_contrat}€ TTC.")
+                            anomalies_detectees += 1
+                        break # Sortie de la boucle mapping si on a trouvé un match
+            
+            if anomalies_detectees == 0:
+                r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
+        else:
+            r.append("   ℹ️ Aucune écriture trouvée dans les comptes 621/622.")
+    else:
+        r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")
 
 
+##############################################################################################################################################################"
 
 # --- INTERFACE STREAMLIT ---
 
@@ -602,23 +673,16 @@ with col2:
 
                 # Un appel IA pour lire le contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
-                if contrat_file is not None:
-                    with st.status("Analyse en cours...") as status:
-                        # On passe directement l'objet contrat_file
-                        contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
-                        if contrat_df:
-                            status.update(label="✅ Tarifs extraits !", state="complete")
-                            st.json(contrat_df) # Pour vérifier le résultat
-                            progress_bar.progress(80)
-
-                
+                contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
+                progress_bar.progress(70)
+        
 
                 # AUDIT COMPTABLE
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
                 rapport_final = generer_rapport_audit(gl_df, bank_df, contrat_df)
+                progress_bar.progress(80)
     
         
-                
                 # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
                 status.update(label="✍️ Rédaction de la synthèse...")
                 
