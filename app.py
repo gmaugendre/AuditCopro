@@ -487,6 +487,13 @@ with col1:
     releves_files = st.file_uploader("12 relevés bancaires mensuels (pdf)", type="pdf", accept_multiple_files=True)
     contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
 
+# --- Saisie des 12 relevés de compte ---
+nb_fichiers = len(releves_files) if releves_files else 0
+    if nb_fichiers > 0 and < 12:
+        st.warning(f"⏳ Il manque {12 - nb_fichiers} relevé(s).")
+    elif nb_fichiers > 12:
+        st.error(f"🚫 Trop de fichiers : vous avez importé {nb_fichiers} relevés au lieu de 12.")
+
 # --- Sécurité anti-doublons (noms et tailles) ---
 fichiers_doublons = False
 if releves_files:
