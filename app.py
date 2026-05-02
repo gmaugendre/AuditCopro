@@ -470,12 +470,12 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("### 1. Import des documents (exercice N-1)")
     gl_file = st.file_uploader("Grand livre (pdf)", type="pdf")
-    releves_files = st.file_uploader("12 relevés bancaires (pdf)", type="pdf", accept_multiple_files=True)
+    releves_files = st.file_uploader("12 relevés bancaires mensuels (pdf)", type="pdf", accept_multiple_files=True)
     contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 13 APRES DEBOGAGE
+    if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 12 APRES DEBOGAGE
         if st.button("Générer le rapport d'analyse", type="primary"):
             st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min...")
             progress = st.progress(0)
@@ -619,7 +619,8 @@ with col2:
 
             st.info("Toutes les données ont été supprimées.")
     else:
-        st.info("En attente des documents (1 grand livre, 12 relevés bancaires, 1 contrat)...")
+        st.markdown(" ")
+        st.info("En attente: 1 grand livre, 12 relevés bancaires, 1 contrat...")
 
 st.markdown("---")
 st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
