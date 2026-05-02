@@ -485,32 +485,32 @@ with col2:
             rapport_final = generer_rapport_audit(gl_df, bank_df)
             progress.progress(100)
             
-# --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+            # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
             instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
-Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
-Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
-La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
-Les contraintes de rédaction:
-Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
-Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
-Prudence légale : Utilise le conditionnel si nécessaire.
-Structure du rapport : Introduction, Sections thématiques, Conclusion."""
+            Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
+            Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
+            La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
+            Les contraintes de rédaction:
+            Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
+            Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
+            Prudence légale : Utilise le conditionnel si nécessaire.
+            Structure du rapport : Introduction, Sections thématiques, Conclusion."""
 
-        prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
-            
-        # --- GÉNÉRATION DU PDF VIA FPDF2 ---
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt_complet
-            )
-            synthese_texte = response.text
+            prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
+        
+            # --- GÉNÉRATION DU PDF VIA FPDF2 ---
+            try:
+                response = client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=prompt_complet
+                )
+                synthese_texte = response.text
             
             # Nettoyage minimal pour l'encodage PDF standard
             # fpdf2 supporte mieux le texte, mais le symbole € nécessite une police Unicode 
             # ou un remplacement pour rester sur les polices standards légères.
             texte_final = synthese_texte.replace('€', ' euros ').replace('’', "'")
-        
+
             pdf = FPDF()
             pdf.add_page()
             pdf.set_auto_page_break(auto=True, margin=15)
@@ -535,8 +535,7 @@ Structure du rapport : Introduction, Sections thématiques, Conclusion."""
                 file_name="Rapport_Synthese.pdf",
                 mime="application/pdf"
             )
-            
-        except Exception as e:
+            except Exception as e:
             st.error(f"❌ Erreur lors de la génération du PDF : {e}")
             
             
