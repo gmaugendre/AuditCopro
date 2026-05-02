@@ -620,7 +620,8 @@ with col2:
             st.info("Toutes les données ont été supprimées.")
     else:
         st.markdown(" ")
-        st.info("En attente: 1 grand livre, 12 relevés bancaires, 1 contrat...")
+        st.markdown(" ")
+        st.info("Documents incomplets ...")
 
 st.markdown("---")
 st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
