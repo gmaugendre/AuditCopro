@@ -38,7 +38,7 @@ def save_uploaded_file(uploaded_file, sub):
 def convert_pdf_to_excel(pdf_path):
     try:
         prompt = """Agis comme un extracteur de données comptables de haute précision.
-        Analyse ce fichier PDF et extrais chaque écriture comptable dans un fichier EXCEL.
+        Analyse ce fichier PDF et extrais chaque écriture comptable.
         Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
         Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
         Si les colonnes NUMERO_COMPTE ou NOM_COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
@@ -47,7 +47,7 @@ def convert_pdf_to_excel(pdf_path):
         Les dates doivent être au format date JJ/MM/AAAA.
         Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
         Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
-        N'affiche aucun autre texte."""
+        Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
 
         with open(pdf_path, "rb") as f:
             pdf_bytes = f.read()
@@ -516,7 +516,7 @@ with col2:
     
                 # Nettoyage du texte pour éviter les erreurs d'encodage communes
                 # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
-                texte_final = synthese_ia.replace('’', "'").replace('€', ' Euros')
+                texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
                 
                 # Utilisation de write_html pour interpréter le gras (**) de Gemini
                 # fpdf2 convertit automatiquement le Markdown simple en HTML interne
@@ -532,12 +532,12 @@ with col2:
                 st.success("Analyse terminée.")
                 st.download_button(
                     label="📥 Télécharger le rapport de synthèse (pdf)",
-                    data=pdf_data,
+                    data=pdf_output,
                     file_name="Rapport_Synthese.pdf",
                     mime="application/pdf"
                 )
             except Exception as e:
-                st.error(f"❌ Erreur lors de la génération du PDF : {e}")
+                st.error(f"❌ Erreur lors de la génération du pdf : {e}")
             
             
             
