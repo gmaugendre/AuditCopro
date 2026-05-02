@@ -125,9 +125,71 @@ def extract_releve_data(pdf_path):
     return pd.DataFrame()
 
 
+
+def extraire_grille_tarifaire_universelle(uploaded_file):
+    """
+    Extrait les tarifs du contrat et les range dans une grille fixe, 
+    indépendamment de la formulation utilisée par le syndic.
+    """
+    # Lecture des octets directement depuis la mémoire
+    pdf_bytes = uploaded_file.read() 
+    
+    # Remise à zéro du pointeur (bonne pratique Streamlit si vous relisez le fichier plus tard)
+    uploaded_file.seek(0)
+    
+    # Grille de référence (Clés fixes pour Python : Description pour l'IA)
+    grille_reference = {
+        "forfait_annuel": "Rémunération forfaitaire annuelle",
+        "vacation_horaire": "Coût horaire pour prestations particulières (prorata du temps passé)",
+        "mise_en_demeure": "Mise en demeure par lettre recommandée AR",
+        "relance_simple": "Relance après mise en demeure",
+        "etat_date": "Établissement de l'état daté (montant maximum)",
+        "opposition_mutation": "Opposition sur mutation",
+        "mise_en_demeure_tiers": "Mise en demeure d'un tiers par lettre recommandée AR",
+        "injonction_payer": "Dépôt d'une requête en injonction de payer",
+        "reprise_compta_forfait": "Reprise de comptabilité sur exercices antérieurs (forfait)",
+        "reprise_compta_lot": "Reprise de comptabilité (par lot principal et par exercice)",
+        "ag_supplementaire": "Assemblée générale supplémentaire (par lot, min. 800 € TTC)",
+        "copie_pv": "Délivrance d'une copie certifiée conforme d'un PV d'AG"
+    }
+
+    prompt = f"""
+    Agis comme un expert en audit de copropriété. Ton objectif est d'extraire les tarifs d'un contrat de syndic pour remplir une grille standardisée.
+    
+    VOICI LA GRILLE DE DESTINATION (Clé : Description du tarif à chercher) :
+    {json.dumps(grille_reference, ensure_ascii=False, indent=2)}
+
+    RÈGLES CRITIQUES :
+    1. SYNONYMES : Le syndic peut utiliser des termes différents. Analyse le sens pour remplir la bonne clé (ex: "Honoraires de base" -> "forfait_annuel").
+    2. MONTANTS : Extrais uniquement des nombres (float). Si un tarif est au forfait + au lot, extrais la part fixe pour le forfait.
+    3. TVA : Extrais toujours le montant TTC. Si seul le HT est écrit, calcule TTC = HT * 1.20.
+    4. ABSENCE : Si un tarif n'est pas mentionné ou si la prestation est gratuite/incluse, inscris 0.0.
+    5. FORMAT : Retourne UNIQUEMENT un objet JSON dont les clés sont celles de ma grille.
+    """
+
+try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                # On utilise directement les bytes ici
+                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                prompt
+            ],
+            config=types.GenerateContentConfig(response_mime_type="application/json")
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        if "429" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+        else:
+            st.error(f"❌ Erreur technique : {e}")
+
+
+
+
 # --- MOTEUR D'AUDIT ---
 
-def generer_rapport_audit(df_gl, df_bank):
+def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r = [] 
     date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     
@@ -463,6 +525,14 @@ def generer_rapport_audit(df_gl, df_bank):
     return "\n".join(r)
 
 
+    # --- SECTION J : CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
+    # La variable 'df_contrat' contient les tarifs du syndic à exploiter vs. les facturations réelles
+    # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
+    df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
+    ecritures_syndic = df_honoraires.to_string(index=False)
+
+
+
 # --- INTERFACE STREAMLIT ---
 
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
@@ -525,66 +595,29 @@ with col2:
                 # On fusionne les relevés de banque pdf
                 merged_bank_path = merge_pdfs(releves_files, "rb")
                 
-                # Un seul appel Gemini pour tous les relevés bancaires agrégés
+                # Un seul appel IA pour tous les relevés bancaires agrégés
                 status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(50)
 
-                # Audit
+                # Un appel IA pour lire le contrat
+                status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
+                if contrat_file is not None:
+                with st.status("Analyse en cours...") as status:
+                # On passe directement l'objet contrat_file
+                contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
+                if contrat_df:
+                    status.update(label="✅ Tarifs extraits !", state="complete")
+                    st.json(contrat_df) # Pour vérifier le résultat
+                progress_bar.progress(80)
+
+                
+
+                # AUDIT COMPTABLE
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
-                rapport_final = generer_rapport_audit(gl_df, bank_df)
-                progress_bar.progress(60)
+                rapport_final = generer_rapport_audit(gl_df, bank_df, contrat_df)
     
-    
-                # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-                analyse_contrat = ""
-                if contrat_file:
-                    status.update(label="⚖️ Analyse du contrat et des frais du syndic...", expanded=True)
-                    
-                    # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
-                    df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
-                    ecritures_syndic = df_honoraires.to_string(index=False)
-                    
-                    # Lecture du contrat
-                    contrat_path = save_uploaded_file(contrat_file, "contrat")
-                    with open(contrat_path, "rb") as f:
-                        contrat_bytes = f.read()
-                    
-                    prompt_contrat = f"""
-                    Agis comme un expert en gestion de copropriété pour identifier les frais indûment facturés par le syndic. 
-                    Voici le contrat du syndic (PDF) et les écritures comptables enregistrées dans les comptes 621 et 622.
-                    ÉCRITURES COMPTABLES (Comptes 621 et 622) :
-                    {ecritures_syndic}
-                    MISSION :
-                    1. Vérifie si le montant du forfait annuel dans le contrat correspond au total des écritures en compte 621 (Rémunérations du syndic sur gestion copropriété) en te basant sur les libellés des écritures.
-                    2. Vérifie si les prestations particulières facturées en compte 622 (Autres honoraires du syndic) sont prévues au contrat et si les tarifs sont respectés en te basant sur les libellés des écritures.
-                    3. Relève toute anomalie (double facturation, frais non prévus, dépassement de tarif) en portant une attention particulière aux vacations, frais postaux, frais hors contrat forfaitaire, frais de mise en demeure, frais de justice ou d'avocat.
-                    Sois précis mais conserve ton discernement pour ne pas ergoter sur tout et cite les articles du contrat si possible pour justifier tes affirmations.
-                    """
-                    
-                    try:
-                        res_contrat = client.models.generate_content(
-                            model=GEMINI_MODEL,
-                            contents=[
-                                types.Part.from_bytes(data=contrat_bytes, mime_type="application/pdf"),
-                                prompt_contrat
-                            ]
-                        )
-                        analyse_contrat = "\n\n[SECTION SPÉCIALE] CONTRÔLE DU CONTRAT SYNDIC\n" + res_contrat.text
-                    except Exception as e:
-                        analyse_contrat = f"\nImpossible d'analyser le contrat"
-                        if "429" in str(e) or "quota" in str(e).lower():
-                            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
-                        else:
-                            st.error(f"❌ Erreur technique : {e}")
-
-
-                    
-                    # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
-                    rapport_final = rapport_final + analyse_contrat
-                    progress_bar.progress(80)
-    
-    
+        
                 
                 # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
                 status.update(label="✍️ Rédaction de la synthèse...")
