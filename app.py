@@ -489,16 +489,15 @@ with col1:
 
 # --- Sécurité anti-doublons (noms et tailles) ---
 fichiers_doublons = False
-    if releves_files:
-        noms = [f.name for f in releves_files]
-        tailles = [f.size for f in releves_files]
-        
-        if len(noms) != len(set(noms)):
-            st.error("⚠️ Doublon détecté : certains fichiers portent le même nom.")
-            fichiers_doublons = True
-        elif len(tailles) != len(set(tailles)):
-            st.error("⚠️ Doublon détecté : certains fichiers ont la même taille (contenu probablement identique).")
-            fichiers_doublons = True
+if releves_files:
+    noms = [f.name for f in releves_files]
+    tailles = [f.size for f in releves_files]
+    if len(noms) != len(set(noms)):
+        st.error("⚠️ Doublon détecté : certains fichiers portent le même nom.")
+        fichiers_doublons = True
+    elif len(tailles) != len(set(tailles)):
+        st.error("⚠️ Doublon détecté : certains fichiers ont la même taille (contenu probablement identique).")
+        fichiers_doublons = True
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
