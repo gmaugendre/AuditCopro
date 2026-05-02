@@ -167,21 +167,22 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     5. FORMAT : Retourne UNIQUEMENT un objet JSON dont les clés sont celles de ma grille.
     """
 
-try:
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-            prompt
-        ],
-        config=types.GenerateContentConfig(response_mime_type="application/json")
-        )
-    return json.loads(response.text)
-except Exception as e:
-    if "429" in str(e) or "quota" in str(e).lower():
-        st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
-    else:
-        st.error(f"❌ Erreur technique : {e}")
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[
+                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                prompt
+            ],
+            config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+        return json.loads(response.text)
+    except Exception as e:
+        if "429" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+        else:
+            st.error(f"❌ Erreur technique : {e}")
+        return {}
 
 
 
