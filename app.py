@@ -11,10 +11,7 @@ from google import genai
 from google.genai import types
 from thefuzz import fuzz
 from scipy.optimize import linear_sum_assignment
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
+from fpdf import FPDF
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -450,10 +447,12 @@ def generer_rapport_audit(df_gl, df_bank):
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
     return "\n".join(r)
 
+
 # --- INTERFACE STREAMLIT ---
 
 st.title("Assistant d'analyse des comptes de copropriété")
 st.subheader("Conseils syndicaux: reprenez le contrôle !")
+# st.image(logo.png)
 st.markdown("---")
 
 col1, col2 = st.columns(2)
@@ -486,23 +485,16 @@ with col2:
             rapport_final = generer_rapport_audit(gl_df, bank_df)
             progress.progress(100)
             
-            # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+# --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
             instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
 Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
-
 Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
 La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
-
 Les contraintes de rédaction:
 Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
-Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs (ex: 'faute', 'vol', 'incompétence') par des termes neutres ou d'investigation (ex: 'écart à clarifier', 'écriture en suspens', 'besoin de précision', 'anomalie apparente').
-Prudence légale : N'utilise pas d'adjectifs excessifs. Présente les faits comme des éléments nécessitant une vérification contradictoire. Utilise le conditionnel si nécessaire.
-
-Structure du rapport :
-Une brève introduction expliquant la démarche de contrôle.
-Des sections thématiques (Trésorerie, Comptes d'attente, Fournisseurs, Rapprochement bancaire).
-Pour chaque point : explique l'enjeu (pourquoi c'est important pour la copropriété) puis expose le constat.
-Une conclusion sous forme de 'points d'attention' pour préparer la prochaine réunion avec le syndic."""
+Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
+Prudence légale : Utilise le conditionnel si nécessaire.
+Structure du rapport : Introduction, Sections thématiques, Conclusion."""
 
             prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
             
@@ -513,78 +505,64 @@ Une conclusion sous forme de 'points d'attention' pour préparer la prochaine r�
                 )
                 synthese_texte = response.text
                 
-                # Conversion en PDF via ReportLab
-                pdf_buffer = io.BytesIO()
-                doc = SimpleDocTemplate(
-                    pdf_buffer,
-                    pagesize=A4,
-                    rightMargin=40,
-                    leftMargin=40,
-                    topMargin=40,
-                    bottomMargin=40
-                )
+                # --- GÉNÉRATION DU PDF VIA FPDF2 ---
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_auto_page_break(auto=True, margin=15)
                 
-                styles = getSampleStyleSheet()
-                style_titre = ParagraphStyle(
-                    'TitreDoc',
-                    parent=styles['Heading1'],
-                    fontName='Helvetica-Bold',
-                    fontSize=16,
-                    leading=20,
-                    textColor=colors.HexColor('#1A365D'),
-                    spaceAfter=15
-                )
+                # Titre Principal
+                pdf.set_font("Helvetica", "B", 16)
+                pdf.set_text_color(26, 54, 93) # #1A365D
+                pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
+                pdf.ln(10)
                 
-                style_corps = ParagraphStyle(
-                    'CorpsDoc',
-                    parent=styles['Normal'],
-                    fontName='Helvetica',
-                    fontSize=10,
-                    leading=14,
-                    textColor=colors.HexColor('#2D3748'),
-                    spaceAfter=8
-                )
-                
-                story = []
-                story.append(Paragraph("Rapport de Synthèse de Copropriété", style_titre))
-                story.append(Spacer(1, 10))
-                
+                # Corps du texte
                 lignes = synthese_texte.split('\n')
                 for ligne in lignes:
-                    ligne_nettoyee = ligne.strip()
-                    if not ligne_nettoyee:
-                        story.append(Spacer(1, 6))
+                    ligne = ligne.strip()
+                    if not ligne:
+                        pdf.ln(5)
                         continue
-                    if ligne_nettoyee.startswith('#'):
-                        titre_texte = ligne_nettoyee.lstrip('#').strip()
-                        style_h = ParagraphStyle(
-                            'SubHeading',
-                            parent=styles['Heading2'],
-                            fontName='Helvetica-Bold',
-                            fontSize=12,
-                            leading=16,
-                            textColor=colors.HexColor('#2B6CB0'),
-                            spaceBefore=10,
-                            spaceAfter=6
-                        )
-                        story.append(Paragraph(titre_texte, style_h))
-                    elif ligne_nettoyee.startswith(('*', '-')):
-                        texte_puce = ligne_nettoyee.lstrip('*-').strip()
-                        texte_puce = texte_puce.replace('**', '<b>', 1).replace('**', '</b>', 1)
-                        story.append(Paragraph(f"• {texte_puce}", style_corps))
+                    
+                    # Gestion des Titres Markdown (# Titre)
+                    if ligne.startswith('#'):
+                        pdf.set_font("Helvetica", "B", 12)
+                        pdf.set_text_color(43, 108, 176) # #2B6CB0
+                        titre = ligne.lstrip('#').strip()
+                        pdf.ln(5)
+                        pdf.multi_cell(0, 8, titre)
+                        pdf.ln(2)
+                    # Gestion des Puces (* ou -)
+                    elif ligne.startswith(('*', '-')):
+                        pdf.set_font("Helvetica", "", 10)
+                        pdf.set_text_color(45, 55, 72) # #2D3748
+                        texte_puce = "  " + ligne.strip()
+                        # Nettoyage des ** pour le gras simple
+                        texte_puce = texte_puce.replace('**', '')
+                        pdf.multi_cell(0, 6, texte_puce)
+                    # Texte normal
                     else:
-                        texte_corps = ligne_nettoyee.replace('**', '<b>').replace('**', '</b>')
-                        story.append(Paragraph(texte_corps, style_corps))
-                        
-                doc.build(story)
-                pdf_data = pdf_buffer.getvalue()
+                        pdf.set_font("Helvetica", "", 10)
+                        pdf.set_text_color(45, 55, 72)
+                        # Nettoyage des ** pour éviter les bugs visuels
+                        texte_propre = ligne.replace('**', '')
+                        pdf.multi_cell(0, 6, texte_propre)
+                
+                # Récupération des données PDF
+                pdf_data = pdf.output(dest='S')
                 
                 st.success("Analyse terminée.")
-                st.download_button("📥 Télécharger le rapport de synthèse (PDF)", pdf_data, "Rapport_Synthese.pdf", mime="application/pdf")
+                st.download_button(
+                    label="📥 Télécharger le rapport de synthèse (pdf)",
+                    data=pdf_data,
+                    file_name="Rapport_Synthese.pdf",
+                    mime="application/pdf"
+                )
                 
             except Exception as e:
                 st.error(f"❌ Erreur lors de la génération du PDF avec l'IA : {e}")
 
+            
             # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
             st.markdown("### 🛠️ Aperçu des conversions IA")
