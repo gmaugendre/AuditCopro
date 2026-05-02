@@ -182,7 +182,6 @@ except Exception as e:
         st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
     else:
         st.error(f"❌ Erreur technique : {e}")
-    return {}
 
 
 
