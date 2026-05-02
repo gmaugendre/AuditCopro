@@ -452,7 +452,7 @@ def generer_rapport_audit(df_gl, df_bank):
 
 st.title("Assistant d'analyse des comptes de copropriété")
 st.subheader("Conseils syndicaux: reprenez le contrôle !")
-# st.image(logo.png)
+st.image(logo.png)
 st.markdown("---")
 
 col1, col2 = st.columns(2)
@@ -496,72 +496,50 @@ Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accus
 Prudence légale : Utilise le conditionnel si nécessaire.
 Structure du rapport : Introduction, Sections thématiques, Conclusion."""
 
-            prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
+prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
             
-            try:
-                response = client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=prompt_complet
-                )
-                synthese_texte = response.text
-                
-                # --- GÉNÉRATION DU PDF VIA FPDF2 ---
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_auto_page_break(auto=True, margin=15)
-                
-                # Titre Principal
-                pdf.set_font("Helvetica", "B", 16)
-                pdf.set_text_color(26, 54, 93) # #1A365D
-                pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
-                pdf.ln(10)
-                
-                # Corps du texte
-                lignes = synthese_texte.split('\n')
-                for ligne in lignes:
-                    ligne = ligne.strip()
-                    if not ligne:
-                        pdf.ln(5)
-                        continue
-                    
-                    # Gestion des Titres Markdown (# Titre)
-                    if ligne.startswith('#'):
-                        pdf.set_font("Helvetica", "B", 12)
-                        pdf.set_text_color(43, 108, 176) # #2B6CB0
-                        titre = ligne.lstrip('#').strip()
-                        pdf.ln(5)
-                        pdf.multi_cell(0, 8, titre)
-                        pdf.ln(2)
-                    # Gestion des Puces (* ou -)
-                    elif ligne.startswith(('*', '-')):
-                        pdf.set_font("Helvetica", "", 10)
-                        pdf.set_text_color(45, 55, 72) # #2D3748
-                        texte_puce = "  " + ligne.strip()
-                        # Nettoyage des ** pour le gras simple
-                        texte_puce = texte_puce.replace('**', '')
-                        pdf.multi_cell(0, 6, texte_puce)
-                    # Texte normal
-                    else:
-                        pdf.set_font("Helvetica", "", 10)
-                        pdf.set_text_color(45, 55, 72)
-                        # Nettoyage des ** pour éviter les bugs visuels
-                        texte_propre = ligne.replace('**', '')
-                        pdf.multi_cell(0, 6, texte_propre)
-                
-                # Récupération des données PDF (fpdf2 renvoie directement les bytes via output())
-                pdf_data = pdf.output()
-                
-                st.success("Analyse terminée.")
-                st.download_button(
-                    label="📥 Télécharger le rapport de synthèse (pdf)",
-                    data=pdf_data,
-                    file_name="Rapport_Synthese.pdf",
-                    mime="application/pdf"
-                )
-                
-            except Exception as e:
-                st.error(f"❌ Erreur lors de la génération du PDF avec l'IA : {e}")
+# --- GÉNÉRATION DU PDF VIA FPDF2 ---
+try:
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt_complet
+    )
+    synthese_texte = response.text
+    
+    # Nettoyage minimal pour l'encodage PDF standard
+    # fpdf2 supporte mieux le texte, mais le symbole € nécessite une police Unicode 
+    # ou un remplacement pour rester sur les polices standards légères.
+    texte_final = synthese_texte.replace('€', ' euros ').replace('’', "'")
 
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Titre
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
+    pdf.ln(5)
+    
+    # Corps du texte ultra-simple
+    # 'markdown=True' permet à fpdf2 d'interpréter le gras (**) envoyé par Gemini
+    pdf.set_font("Helvetica", size=10)
+    pdf.multi_cell(0, 6, texte_final, markdown=True)
+    
+    # Sortie
+    pdf_data = pdf.output()
+    
+    st.success("Analyse terminée.")
+    st.download_button(
+        label="📥 Télécharger le rapport de synthèse (pdf)",
+        data=pdf_data,
+        file_name="Rapport_Synthese.pdf",
+        mime="application/pdf"
+    )
+    
+except Exception as e:
+    st.error(f"❌ Erreur lors de la génération du PDF : {e}")
+            
+            
             
             # --- APERÇU DES DONNÉES CONVERTIES ---
             st.markdown("---")
