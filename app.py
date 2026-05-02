@@ -138,7 +138,7 @@ def generer_rapport_audit(df_gl, df_bank):
 # --- INTERFACE STREAMLIT ---
 
 st.title("Assistant d'analyse des comptes de copropriété")
-st.subheader("à partir des écritures détaillées du grand livre et des relevés bancaires")
+st.subheader("Conseils syndicaux: reprenez le contrôle !")
 st.markdown("---")
 
 col1, col2 = st.columns(2)
@@ -148,7 +148,7 @@ with col1:
     releves_files = st.file_uploader("12 relevés (pdf)", type="pdf", accept_multiple_files=True)
 
 with col2:
-    st.markdown("### 2. Traitement")
+    st.markdown("### 2. Traitement & analyse")
     if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 12 APRES DEBOGAGE
         if st.button("Générer le rapport complet", type="primary"):
             progress = st.progress(0)
