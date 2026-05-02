@@ -503,7 +503,7 @@ with col1:
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 and not fichiers_doublons  ####################REMETTTRE 12 APRES DEBOGAGE
+    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 3 and not fichiers_doublons  ####################REMETTTRE 12 APRES DEBOGAGE
     if documents_prets:
         st.markdown(" ")
         st.markdown(" ")
