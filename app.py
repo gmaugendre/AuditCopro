@@ -621,7 +621,7 @@ with col2:
     else:
         st.markdown(" ")
         st.markdown(" ")
-        st.info("Documents incomplets ...")
+        st.info("Charger tous les documents avant de lancer le traitement ...")
 
 st.markdown("---")
 st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
