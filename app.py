@@ -480,31 +480,33 @@ with col2:
         st.markdown(" ")
         st.markdown(" ")
         if st.button("Générer le rapport d'analyse", type="primary"):
-            st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min...")
-            progress = st.progress(0)
+            with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
+            progress_bar = st.progress(0)
             
             # Extraction
+            status.update(label="📄 Lecture du Grand livre...", expanded=True)
             gl_path = save_uploaded_file(gl_file, "gl")
             gl_df = convert_pdf_to_excel(gl_path)
-            progress.progress(30)
             
             all_releves = []
             for i, f in enumerate(releves_files):
+                status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
                 p_rb = save_uploaded_file(f, "rb")
                 all_releves.append(extract_releve_data(p_rb))
-                progress.progress(30 + int((i/12)*60))
+                progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 50))
             
             bank_df = pd.concat(all_releves, ignore_index=True)
             
             # Audit
+            status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
             rapport_final = generer_rapport_audit(gl_df, bank_df)
-            progress.progress(100)
+            progress.progress(80)
 
 
             # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
             analyse_contrat = ""
             if contrat_file:
-                #st.info("Analyse de la facturation du syndic par rapport au contrat...")
+                status.update(label="⚖️ Analyse du contrat et des frais du syndic...", expanded=True)
                 
                 # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
                 df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
@@ -541,10 +543,13 @@ with col2:
                     
                 # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
                 rapport_final = rapport_final + analyse_contrat
+                progress.progress(90)
 
 
             
             # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+            status.update(label="✍️ Rédaction de la synthèse pédagogique...")
+            
             instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
             Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
             Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
@@ -590,7 +595,9 @@ with col2:
             
                 pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
                
+                progress_bar.progress(100)
                 st.success("Analyse terminée.")
+                
                 st.download_button(
                     label="📥 Télécharger le rapport de synthèse (pdf)",
                     data=pdf_output,
