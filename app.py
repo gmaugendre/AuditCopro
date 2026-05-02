@@ -475,7 +475,7 @@ with col1:
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 12 APRES DEBOGAGE
+    if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 13 APRES DEBOGAGE
         if st.button("Générer le rapport d'analyse", type="primary"):
             st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min...")
             progress = st.progress(0)
@@ -513,7 +513,7 @@ with col2:
                     contrat_bytes = f.read()
                 
                 prompt_contrat = f"""
-                Agis comme un expert en gestion de copropriété. 
+                Agis comme un expert en gestion de copropriété pour identifier les frais indûment facturés par le syndic. 
                 Voici le contrat du syndic (PDF) et les écritures comptables enregistrées dans les comptes 621 et 622.
                 ÉCRITURES COMPTABLES (Comptes 621 et 622) :
                 {ecritures_syndic}
@@ -619,7 +619,7 @@ with col2:
 
             st.info("Toutes les données ont été supprimées.")
     else:
-        st.info("En attente des documents (1 grand livre & 12 relevés bancaires)...")
+        st.info("En attente des documents (1 grand livre, 12 relevés bancaires, 1 contrat)...")
 
 st.markdown("---")
 st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
