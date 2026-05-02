@@ -506,28 +506,29 @@ with col2:
                 )
                 synthese_texte = response.text
             
-                # Nettoyage minimal pour l'encodage PDF standard
-                # fpdf2 supporte mieux le texte, mais le symbole € nécessite une police Unicode 
-                # ou un remplacement pour rester sur les polices standards légères.
-                texte_final = synthese_texte.replace('€', ' euros ').replace('’', "'")
-    
                 pdf = FPDF()
                 pdf.add_page()
                 pdf.set_auto_page_break(auto=True, margin=15)
-                
-                # Titre
-                pdf.set_font("Helvetica", "B", 16)
-                pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
+                # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
+                pdf.set_font("helvetica", "B", 16)
+                pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
                 pdf.ln(5)
+    
+                # Nettoyage du texte pour éviter les erreurs d'encodage communes
+                # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
+                texte_final = synthese_ia.replace('’', "'").replace('€', ' Euros')
                 
-                # Corps du texte ultra-simple
-                # 'markdown=True' permet à fpdf2 d'interpréter le gras (**) envoyé par Gemini
-                pdf.set_font("Helvetica", size=10)
-                pdf.multi_cell(0, 6, texte_final, markdown=True)
+                # Utilisation de write_html pour interpréter le gras (**) de Gemini
+                # fpdf2 convertit automatiquement le Markdown simple en HTML interne
+                pdf.set_font("helvetica", size=11)
                 
-                # Sortie
-                pdf_data = pdf.output()
-                
+                # On utilise le rendu Markdown de fpdf2
+                # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
+                # passer par la méthode dédiée aux textes longs :
+                pdf.multi_cell(0, 6, texte_final, markdown=True) 
+            
+                pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
+               
                 st.success("Analyse terminée.")
                 st.download_button(
                     label="📥 Télécharger le rapport de synthèse (pdf)",
