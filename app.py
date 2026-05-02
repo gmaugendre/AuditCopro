@@ -82,7 +82,7 @@ def convert_pdf_to_excel(pdf_path):
         
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne. Réessayez demain ou utilisez une autre clé API.")
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
         else:
             st.error(f"❌ Erreur technique : {e}")
     return pd.DataFrame()
@@ -119,7 +119,7 @@ def extract_releve_data(pdf_path):
 
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne. Réessayez demain ou utilisez une autre clé API.")
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
         else:
             st.error(f"❌ Erreur technique : {e}")
     return pd.DataFrame()
@@ -495,7 +495,7 @@ with col2:
         st.markdown(" ")
         if st.button("Générer le rapport d'analyse", type="primary"):
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
-                progress_bar = st.progress(0)
+                progress_bar = st.progress(10)
                 
                 # Extraction
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
@@ -506,7 +506,7 @@ with col2:
                 # On fusionne les relevés de banque pdf
                 merged_bank_path = merge_pdfs(releves_files, "rb")
                 
-                # Un SEUL appel Gemini pour tous les relevés d'un coup
+                # Un seul appel Gemini pour tous les relevés bancaires agrégés
                 status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(50)
@@ -553,11 +553,17 @@ with col2:
                         )
                         analyse_contrat = "\n\n[SECTION SPÉCIALE] CONTRÔLE DU CONTRAT SYNDIC\n" + res_contrat.text
                     except Exception as e:
-                        analyse_contrat = f"\n⚠️ Impossible d'analyser le contrat : {e}"
-                        
+                        analyse_contrat = f"\nImpossible d'analyser le contrat"
+                        if "429" in str(e) or "quota" in str(e).lower():
+                            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+                        else:
+                            st.error(f"❌ Erreur technique : {e}")
+
+
+                    
                     # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
                     rapport_final = rapport_final + analyse_contrat
-                    progress.progress(80)
+                    progress_bar.progress(80)
     
     
                 
