@@ -43,7 +43,8 @@ def convert_pdf_to_excel(pdf_path):
         Si les colonnes CODE JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
         Mets les en-têtes des colonnes NUMERO COMPTE | NOM COMPTE | DATE | PIECE | CODE JOURNAL (JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
         Les dates doivent être au format date JJ/MM/AAAA.
-        Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format numérique 1234.56. Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
+        Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
+        Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
         N'affiche aucun autre texte."""
 
         with open(pdf_path, "rb") as f:
@@ -143,14 +144,15 @@ st.markdown("---")
 
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown("### 1. Documents (exercice annuel)")
+    st.markdown("### 1. Import des documents (exercice)")
     gl_file = st.file_uploader("Grand livre (pdf)", type="pdf")
     releves_files = st.file_uploader("12 relevés (pdf)", type="pdf", accept_multiple_files=True)
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
     if gl_file and releves_files and len(releves_files) == 1:  ############################ REMETTRE 12 APRES DEBOGAGE
-        if st.button("Générer le rapport complet", type="primary"):
+        if st.button("Générer le rapport d'analyse", type="primary"):
+            st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min.")
             progress = st.progress(0)
             
             # Extraction
@@ -193,8 +195,8 @@ with col2:
                 st.download_button("💾 Télécharger Banque en Excel", output_bk.getvalue(), "Banque_convertie.xlsx")
 
             # Nettoyage
-            shutil.rmtree(UPLOAD_DIR)
-            os.makedirs(UPLOAD_DIR)
+            #shutil.rmtree(UPLOAD_DIR)    ########################### ENLEVER DU MODE COMMENTAIRE APRES DEBOGAGE
+            #os.makedirs(UPLOAD_DIR)      ########################### ENLEVER DU MODE COMMENTAIRE APRES DEBOGAGE
             st.info("Toutes les données ont été supprimées.")
     else:
         st.info("En attente des documents (1 GL & 12 relevés)...")
@@ -202,6 +204,6 @@ with col2:
 st.markdown("---")
 st.markdown(" ###### Ce projet est un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, expression de besoins etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçu pour accompagner le Conseil syndical dans sa mission d'analyse et de contrôle des comptes de la copropriété afin d'aider à l'identification de points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
+st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçu pour accompagner les Conseils syndical dans leur mission d'analyse et de contrôle des comptes de copropriété afin d'identifier de points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic ou à des discussions avec le mandataire du syndicat. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
 st.caption(" ###### Aucune donnée de votre copropriété n'est conservée: tous les fichiers sont immédiatement supprimés dés la fin du traitement et aucun rapport n'est conservé.")
 
