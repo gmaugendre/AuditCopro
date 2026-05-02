@@ -11,6 +11,10 @@ from google import genai
 from google.genai import types
 from thefuzz import fuzz
 from scipy.optimize import linear_sum_assignment
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -508,7 +512,8 @@ with col2:
         st.info("En attente des documents (1 grand livre & 12 relevés bancaires)...")
 
 st.markdown("---")
-st.markdown(" ###### Ce projet est un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, expression de besoins etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
+st.markdown(" ###### Ce projet pars d'un constat simple: les comptes de copropriété sont souvent indéchiffrables, peuvent comporter des erreurs et manquer de transparence ; les conseils syndicaux disposent souvent de peu de moyens ou d'expertise comptable pour assurer leur mission de contrôle des comptes.")
+st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçu pour accompagner les Conseils syndical dans leur mission d'analyse et de contrôle des comptes de copropriété afin d'identifier de points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic ou à des discussions avec le mandataire du syndicat. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
+st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndical dans leur mission d'analyse et de contrôle des comptes de copropriété afin d'identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes.")
 st.caption(" ###### Aucune donnée de votre copropriété n'est conservée: tous les fichiers sont immédiatement supprimés dés la fin du traitement et aucun rapport n'est conservé.")
