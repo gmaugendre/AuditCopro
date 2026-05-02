@@ -477,7 +477,6 @@ with col2:
     st.markdown("### 2. Traitement & analyse")
     documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 ############## METTRE 12 PLUS TARD
     if documents_prets:
-        st.success("✅ Tous les documents sont chargés. Vous pouvez lancer l'analyse.")
         st.markdown(" ")
         if st.button("Générer le rapport d'analyse", type="primary"):
             st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min...")
