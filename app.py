@@ -478,6 +478,7 @@ with col2:
     documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 ############## METTRE 12 PLUS TARD
     if documents_prets:
         st.markdown(" ")
+        st.markdown(" ")
         if st.button("Générer le rapport d'analyse", type="primary"):
             st.info("Veuillez patienter, le traitement peut prendre jusqu'à 15 min...")
             progress = st.progress(0)
