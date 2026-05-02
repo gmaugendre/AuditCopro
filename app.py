@@ -548,8 +548,8 @@ Structure du rapport : Introduction, Sections thématiques, Conclusion."""
                         texte_propre = ligne.replace('**', '')
                         pdf.multi_cell(0, 6, texte_propre)
                 
-                # Récupération des données PDF
-                pdf_data = pdf.output(dest='S')
+                # Récupération des données PDF (fpdf2 renvoie directement les bytes via output())
+                pdf_data = pdf.output()
                 
                 st.success("Analyse terminée.")
                 st.download_button(
