@@ -452,7 +452,7 @@ def generer_rapport_audit(df_gl, df_bank):
 
 st.title("Assistant d'analyse des comptes de copropriété")
 st.subheader("Conseils syndicaux: reprenez le contrôle !")
-st.image("Logo.png")
+st.image("Logo.png", width=100)
 st.markdown("---")
 
 col1, col2 = st.columns(2)
