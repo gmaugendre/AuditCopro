@@ -496,48 +496,48 @@ Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accus
 Prudence légale : Utilise le conditionnel si nécessaire.
 Structure du rapport : Introduction, Sections thématiques, Conclusion."""
 
-prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
+        prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
             
-# --- GÉNÉRATION DU PDF VIA FPDF2 ---
-try:
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=prompt_complet
-    )
-    synthese_texte = response.text
-    
-    # Nettoyage minimal pour l'encodage PDF standard
-    # fpdf2 supporte mieux le texte, mais le symbole € nécessite une police Unicode 
-    # ou un remplacement pour rester sur les polices standards légères.
-    texte_final = synthese_texte.replace('€', ' euros ').replace('’', "'")
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    
-    # Titre
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
-    pdf.ln(5)
-    
-    # Corps du texte ultra-simple
-    # 'markdown=True' permet à fpdf2 d'interpréter le gras (**) envoyé par Gemini
-    pdf.set_font("Helvetica", size=10)
-    pdf.multi_cell(0, 6, texte_final, markdown=True)
-    
-    # Sortie
-    pdf_data = pdf.output()
-    
-    st.success("Analyse terminée.")
-    st.download_button(
-        label="📥 Télécharger le rapport de synthèse (pdf)",
-        data=pdf_data,
-        file_name="Rapport_Synthese.pdf",
-        mime="application/pdf"
-    )
-    
-except Exception as e:
-    st.error(f"❌ Erreur lors de la génération du PDF : {e}")
+        # --- GÉNÉRATION DU PDF VIA FPDF2 ---
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt_complet
+            )
+            synthese_texte = response.text
+            
+            # Nettoyage minimal pour l'encodage PDF standard
+            # fpdf2 supporte mieux le texte, mais le symbole € nécessite une police Unicode 
+            # ou un remplacement pour rester sur les polices standards légères.
+            texte_final = synthese_texte.replace('€', ' euros ').replace('’', "'")
+        
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            
+            # Titre
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", ln=True, align='C')
+            pdf.ln(5)
+            
+            # Corps du texte ultra-simple
+            # 'markdown=True' permet à fpdf2 d'interpréter le gras (**) envoyé par Gemini
+            pdf.set_font("Helvetica", size=10)
+            pdf.multi_cell(0, 6, texte_final, markdown=True)
+            
+            # Sortie
+            pdf_data = pdf.output()
+            
+            st.success("Analyse terminée.")
+            st.download_button(
+                label="📥 Télécharger le rapport de synthèse (pdf)",
+                data=pdf_data,
+                file_name="Rapport_Synthese.pdf",
+                mime="application/pdf"
+            )
+            
+        except Exception as e:
+            st.error(f"❌ Erreur lors de la génération du PDF : {e}")
             
             
             
