@@ -460,7 +460,7 @@ with col_titre:
     st.subheader("Conseils syndicaux : reprenez le contrôle !")
 with col_logo:
     # Le logo s'affichera à droite du sous-titre
-    st.image("logo.png", width=120) 
+    st.image("Logo.png", width=120) 
 st.markdown("---")
 
 
