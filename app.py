@@ -493,14 +493,14 @@ with col2:
                     status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
                     p_rb = save_uploaded_file(f, "rb")
                     all_releves.append(extract_releve_data(p_rb))
-                    progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 50))
+                    progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 40))
                 
                 bank_df = pd.concat(all_releves, ignore_index=True)
                 
                 # Audit
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
                 rapport_final = generer_rapport_audit(gl_df, bank_df)
-                progress.progress(80)
+                progress.progress(75)
     
     
                 # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
@@ -543,12 +543,12 @@ with col2:
                         
                     # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
                     rapport_final = rapport_final + analyse_contrat
-                    progress.progress(90)
+                    progress.progress(85)
     
     
                 
                 # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
-                status.update(label="✍️ Rédaction de la synthèse pédagogique...")
+                status.update(label="✍️ Rédaction de la synthèse...")
                 
                 instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
                 Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
