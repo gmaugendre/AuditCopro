@@ -468,9 +468,10 @@ st.markdown("---")
 
 col1, col2 = st.columns(2)
 with col1:
-    st.markdown("### 1. Import des documents (exercice)")
+    st.markdown("### 1. Import des documents (exercice N-1)")
     gl_file = st.file_uploader("Grand livre (pdf)", type="pdf")
     releves_files = st.file_uploader("12 relevés bancaires (pdf)", type="pdf", accept_multiple_files=True)
+    contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
@@ -495,6 +496,50 @@ with col2:
             # Audit
             rapport_final = generer_rapport_audit(gl_df, bank_df)
             progress.progress(100)
+
+
+            # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
+            analyse_contrat = ""
+            if contrat_file:
+                #st.info("Analyse de la facturation du syndic par rapport au contrat...")
+                
+                # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
+                df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
+                ecritures_syndic = df_honoraires.to_string(index=False)
+                
+                # Lecture du contrat
+                contrat_path = save_uploaded_file(contrat_file, "contrat")
+                with open(contrat_path, "rb") as f:
+                    contrat_bytes = f.read()
+                
+                prompt_contrat = f"""
+                Agis comme un expert en gestion de copropriété. 
+                Voici le contrat du syndic (PDF) et les écritures comptables enregistrées dans les comptes 621 et 622.
+                ÉCRITURES COMPTABLES (Comptes 621 et 622) :
+                {ecritures_syndic}
+                MISSION :
+                1. Vérifie si le montant du forfait annuel dans le contrat correspond au total des écritures en compte 621 (Rémunérations du syndic sur gestion copropriété) en te basant sur les libellés des écritures.
+                2. Vérifie si les prestations particulières facturées en compte 622 (Autres honoraires du syndic) sont prévues au contrat et si les tarifs sont respectés en te basant sur les libellés des écritures.
+                3. Relève toute anomalie (double facturation, frais non prévus, dépassement de tarif) en portant une attention particulière aux vacations, frais postaux, frais hors contrat forfaitaire, frais de mise en demeure, frais de justice ou d'avocat.
+                Sois précis mais conserve ton discernement pour ne pas ergoter sur tout et cite les articles du contrat si possible pour justifier tes affirmations.
+                """
+                
+                try:
+                    res_contrat = client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=[
+                            types.Part.from_bytes(data=contrat_bytes, mime_type="application/pdf"),
+                            prompt_contrat
+                        ]
+                    )
+                    analyse_contrat = "\n\n[SECTION SPÉCIALE] CONTRÔLE DU CONTRAT SYNDIC\n" + res_contrat.text
+                except Exception as e:
+                    analyse_contrat = f"\n⚠️ Impossible d'analyser le contrat : {e}"
+                    
+                # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
+                rapport_final = rapport_final + analyse_contrat
+
+
             
             # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
             instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
@@ -577,8 +622,9 @@ with col2:
         st.info("En attente des documents (1 grand livre & 12 relevés bancaires)...")
 
 st.markdown("---")
-st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter des centaines de pages d'écritures et les conseils syndicaux disposent souvent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
+st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
 st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes.")
-st.caption(" ###### Protection des données: aucune donnée de votre copropriété n'est conservée: tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
+st.caption(" ###### Protection des données: aucune donnée de votre copropriété n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
+st.caption(" ###### Tous droits réservés.")
