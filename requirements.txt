@@ -1,4 +1,5 @@
 streamlit
+fpdf
 fpdf2
 pandas
 google-genai
