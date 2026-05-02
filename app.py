@@ -481,131 +481,131 @@ with col2:
         st.markdown(" ")
         if st.button("Générer le rapport d'analyse", type="primary"):
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
-            progress_bar = st.progress(0)
-            
-            # Extraction
-            status.update(label="📄 Lecture du Grand livre...", expanded=True)
-            gl_path = save_uploaded_file(gl_file, "gl")
-            gl_df = convert_pdf_to_excel(gl_path)
-            
-            all_releves = []
-            for i, f in enumerate(releves_files):
-                status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
-                p_rb = save_uploaded_file(f, "rb")
-                all_releves.append(extract_releve_data(p_rb))
-                progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 50))
-            
-            bank_df = pd.concat(all_releves, ignore_index=True)
-            
-            # Audit
-            status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
-            rapport_final = generer_rapport_audit(gl_df, bank_df)
-            progress.progress(80)
-
-
-            # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-            analyse_contrat = ""
-            if contrat_file:
-                status.update(label="⚖️ Analyse du contrat et des frais du syndic...", expanded=True)
+                progress_bar = st.progress(0)
                 
-                # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
-                df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
-                ecritures_syndic = df_honoraires.to_string(index=False)
+                # Extraction
+                status.update(label="📄 Lecture du Grand livre...", expanded=True)
+                gl_path = save_uploaded_file(gl_file, "gl")
+                gl_df = convert_pdf_to_excel(gl_path)
                 
-                # Lecture du contrat
-                contrat_path = save_uploaded_file(contrat_file, "contrat")
-                with open(contrat_path, "rb") as f:
-                    contrat_bytes = f.read()
+                all_releves = []
+                for i, f in enumerate(releves_files):
+                    status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
+                    p_rb = save_uploaded_file(f, "rb")
+                    all_releves.append(extract_releve_data(p_rb))
+                    progress_bar.progress(20 + int(((i + 1) / len(releves_files)) * 50))
                 
-                prompt_contrat = f"""
-                Agis comme un expert en gestion de copropriété pour identifier les frais indûment facturés par le syndic. 
-                Voici le contrat du syndic (PDF) et les écritures comptables enregistrées dans les comptes 621 et 622.
-                ÉCRITURES COMPTABLES (Comptes 621 et 622) :
-                {ecritures_syndic}
-                MISSION :
-                1. Vérifie si le montant du forfait annuel dans le contrat correspond au total des écritures en compte 621 (Rémunérations du syndic sur gestion copropriété) en te basant sur les libellés des écritures.
-                2. Vérifie si les prestations particulières facturées en compte 622 (Autres honoraires du syndic) sont prévues au contrat et si les tarifs sont respectés en te basant sur les libellés des écritures.
-                3. Relève toute anomalie (double facturation, frais non prévus, dépassement de tarif) en portant une attention particulière aux vacations, frais postaux, frais hors contrat forfaitaire, frais de mise en demeure, frais de justice ou d'avocat.
-                Sois précis mais conserve ton discernement pour ne pas ergoter sur tout et cite les articles du contrat si possible pour justifier tes affirmations.
-                """
+                bank_df = pd.concat(all_releves, ignore_index=True)
                 
-                try:
-                    res_contrat = client.models.generate_content(
-                        model=GEMINI_MODEL,
-                        contents=[
-                            types.Part.from_bytes(data=contrat_bytes, mime_type="application/pdf"),
-                            prompt_contrat
-                        ]
-                    )
-                    analyse_contrat = "\n\n[SECTION SPÉCIALE] CONTRÔLE DU CONTRAT SYNDIC\n" + res_contrat.text
-                except Exception as e:
-                    analyse_contrat = f"\n⚠️ Impossible d'analyser le contrat : {e}"
-                    
-                # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
-                rapport_final = rapport_final + analyse_contrat
-                progress.progress(90)
-
-
-            
-            # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
-            status.update(label="✍️ Rédaction de la synthèse pédagogique...")
-            
-            instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
-            Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
-            Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
-            La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
-            Les contraintes de rédaction:
-            Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
-            Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
-            Prudence légale : Utilise le conditionnel si nécessaire.
-            Structure du rapport : Introduction, Sections thématiques, Conclusion.
-            Et ajoute en annexes de ce rapport de synthèse un strict copier coller du rapport technique (c'est à dire des données d'analyse brute fournies).
-            """
-
-            prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
-        
-            # --- GÉNÉRATION DU PDF VIA FPDF2 ---
-            try:
-                response = client.models.generate_content(
-                    model=GEMINI_MODEL,
-                    contents=prompt_complet
-                )
-                synthese_texte = response.text
-            
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_auto_page_break(auto=True, margin=15)
-                # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
-                pdf.set_font("helvetica", "B", 16)
-                pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
-                pdf.ln(5)
+                # Audit
+                status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
+                rapport_final = generer_rapport_audit(gl_df, bank_df)
+                progress.progress(80)
     
-                # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
-                texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
+    
+                # --- CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
+                analyse_contrat = ""
+                if contrat_file:
+                    status.update(label="⚖️ Analyse du contrat et des frais du syndic...", expanded=True)
+                    
+                    # Filtrage des comptes 621 (Honoraires forfaitaires) et 622 (Honoraires prestations particulières)
+                    df_honoraires = gl_df[gl_df['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))]
+                    ecritures_syndic = df_honoraires.to_string(index=False)
+                    
+                    # Lecture du contrat
+                    contrat_path = save_uploaded_file(contrat_file, "contrat")
+                    with open(contrat_path, "rb") as f:
+                        contrat_bytes = f.read()
+                    
+                    prompt_contrat = f"""
+                    Agis comme un expert en gestion de copropriété pour identifier les frais indûment facturés par le syndic. 
+                    Voici le contrat du syndic (PDF) et les écritures comptables enregistrées dans les comptes 621 et 622.
+                    ÉCRITURES COMPTABLES (Comptes 621 et 622) :
+                    {ecritures_syndic}
+                    MISSION :
+                    1. Vérifie si le montant du forfait annuel dans le contrat correspond au total des écritures en compte 621 (Rémunérations du syndic sur gestion copropriété) en te basant sur les libellés des écritures.
+                    2. Vérifie si les prestations particulières facturées en compte 622 (Autres honoraires du syndic) sont prévues au contrat et si les tarifs sont respectés en te basant sur les libellés des écritures.
+                    3. Relève toute anomalie (double facturation, frais non prévus, dépassement de tarif) en portant une attention particulière aux vacations, frais postaux, frais hors contrat forfaitaire, frais de mise en demeure, frais de justice ou d'avocat.
+                    Sois précis mais conserve ton discernement pour ne pas ergoter sur tout et cite les articles du contrat si possible pour justifier tes affirmations.
+                    """
+                    
+                    try:
+                        res_contrat = client.models.generate_content(
+                            model=GEMINI_MODEL,
+                            contents=[
+                                types.Part.from_bytes(data=contrat_bytes, mime_type="application/pdf"),
+                                prompt_contrat
+                            ]
+                        )
+                        analyse_contrat = "\n\n[SECTION SPÉCIALE] CONTRÔLE DU CONTRAT SYNDIC\n" + res_contrat.text
+                    except Exception as e:
+                        analyse_contrat = f"\n⚠️ Impossible d'analyser le contrat : {e}"
+                        
+                    # On fusionne le résultat des contrôles Python et l'analyse du contrat par IA
+                    rapport_final = rapport_final + analyse_contrat
+                    progress.progress(90)
+    
+    
                 
-                # Utilisation de write_html pour interpréter le gras (**) de Gemini
-                # fpdf2 convertit automatiquement le Markdown simple en HTML interne
-                pdf.set_font("helvetica", size=11)
+                # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+                status.update(label="✍️ Rédaction de la synthèse pédagogique...")
                 
-                # On utilise le rendu Markdown de fpdf2
-                # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
-                # passer par la méthode dédiée aux textes longs :
-                pdf.multi_cell(0, 6, texte_final, markdown=True) 
+                instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
+                Tu dois impérativement être pédagogue, diplomate, prudent et humble (car des erreurs d'analyse ne sont pas exclues).
+                Contenu: Insère tous les détails disponibles dans des tableaux propres: dates, montants, libellés etc.
+                La cible : Les copropriétaires et les membres du conseil syndical qui n'ont pas de connaissances en comptabilité.
+                Les contraintes de rédaction:
+                Ton & Style : Utilise un français soutenu mais accessible. Évite le jargon technique sans l'expliquer.
+                Diplomatie : Ne sois jamais agressif envers le syndic. Remplace les termes accusateurs par des termes neutres.
+                Prudence légale : Utilise le conditionnel si nécessaire.
+                Structure du rapport : Introduction, Sections thématiques, Conclusion.
+                Et ajoute en annexes de ce rapport de synthèse un strict copier coller du rapport technique (c'est à dire des données d'analyse brute fournies).
+                """
+    
+                prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
             
-                pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
-               
-                progress_bar.progress(100)
-                st.success("Analyse terminée.")
+                # --- GÉNÉRATION DU PDF VIA FPDF2 ---
+                try:
+                    response = client.models.generate_content(
+                        model=GEMINI_MODEL,
+                        contents=prompt_complet
+                    )
+                    synthese_texte = response.text
                 
-                st.download_button(
-                    label="📥 Télécharger le rapport de synthèse (pdf)",
-                    data=pdf_output,
-                    file_name="Rapport_Synthese.pdf",
-                    mime="application/pdf"
-                )
-            except Exception as e:
-                st.error(f"❌ Erreur lors de la génération du pdf : {e}")
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_auto_page_break(auto=True, margin=15)
+                    # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
+                    pdf.set_font("helvetica", "B", 16)
+                    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.ln(5)
+        
+                    # Nettoyage du texte pour éviter les erreurs d'encodage communes
+                    # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
+                    texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
+                    
+                    # Utilisation de write_html pour interpréter le gras (**) de Gemini
+                    # fpdf2 convertit automatiquement le Markdown simple en HTML interne
+                    pdf.set_font("helvetica", size=11)
+                    
+                    # On utilise le rendu Markdown de fpdf2
+                    # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
+                    # passer par la méthode dédiée aux textes longs :
+                    pdf.multi_cell(0, 6, texte_final, markdown=True) 
+                
+                    pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
+                   
+                    progress_bar.progress(100)
+                    st.success("Analyse terminée.")
+                    
+                    st.download_button(
+                        label="📥 Télécharger le rapport de synthèse (pdf)",
+                        data=pdf_output,
+                        file_name="Rapport_Synthese.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"❌ Erreur lors de la génération du pdf : {e}")
             
             
             
