@@ -144,8 +144,8 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("### 1. Documents (exercice annuel)")
-    gl_file = st.file_uploader("Grand Livre (PDF)", type="pdf")
-    releves_files = st.file_uploader("12 Relevés (PDF)", type="pdf", accept_multiple_files=True)
+    gl_file = st.file_uploader("Grand livre (pdf)", type="pdf")
+    releves_files = st.file_uploader("12 relevés (pdf)", type="pdf", accept_multiple_files=True)
 
 with col2:
     st.markdown("### 2. Traitement")
@@ -202,6 +202,6 @@ with col2:
 st.markdown("---")
 st.markdown(" ###### Ce projet est un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, expression de besoins etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer: Je suis un assistant informatique conçu pour accompagner le Conseil syndical dans sa mission d'analyse et de contrôle des comptes de la copropriété. Mon rôle est d'aider à l'identification de points de vigilance. Mon intervention ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
-st.caption(" ###### Aucune donnée sur votre copropriété n'est conservée ni partagée: tous les fichiers sont immédiatement supprimés dés la fin du traitement et aucun rapport n'est stocké.")
+st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçu pour accompagner le Conseil syndical dans sa mission d'analyse et de contrôle des comptes de la copropriété afin d'aider à l'identification de points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire et de contrôles sur site.")
+st.caption(" ###### Aucune donnée de votre copropriété n'est conservée: tous les fichiers sont immédiatement supprimés dés la fin du traitement et aucun rapport n'est conservé.")
 
