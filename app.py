@@ -451,7 +451,7 @@ def generer_rapport_audit(df_gl, df_bank):
 
 # --- INTERFACE STREAMLIT ---
 
-col_texte, col_logo = st.columns([4, 1], vertical_alignment="center")
+col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
     st.title("Assistant d'analyse des comptes de copropriété")
