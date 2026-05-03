@@ -559,7 +559,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
         if tarif_forfait_contrat > 0:
             total_paye_6211 = df_6211['DEBIT'].sum()
-            if total_paye_6211 > (tarif_forfait_contrat * (1+2%)): # Tolérance pour prise en compte des ajustements éventuels liés à une inflation de 2% (parfois prévu au contrat)
+            if total_paye_6211 > (tarif_forfait_contrat * (1+0.02)): # Tolérance pour prise en compte des ajustements éventuels liés à une inflation de 2% (parfois prévu au contrat)
                 r.append(f"   ❌ SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
                 r.append(f"      👉 Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
                 anomalies_detectees += 1
