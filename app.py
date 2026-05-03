@@ -222,8 +222,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     # --- SECTION A : TROP-PAYÉS ---
     r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
-    r.append(" Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois")
-    r.append("   ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
+    r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois")
+    r.append(" ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         if not df_401.empty:
@@ -259,7 +259,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SECTION C] ANALYSE DES IMPAYÉS (> 3 MOIS)")
     r.append(" Liste les factures en attente de paiement depuis plus de 90 jours.")
-    r.append("   Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
+    r.append(" Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         alertes_impayes = []
@@ -318,7 +318,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SECTION E] ANALYSE DES COMPTES D'ATTENTE (471 & 472)")
     r.append(" Ces comptes doivent être soldés à la clôture. Un solde persistant indique des fonds non identifiés")
-    r.append("   ou des dépenses sans justificatifs, souvent révélateurs d'une négligence administrative.\n")
+    r.append(" ou des dépenses sans justificatifs, souvent révélateurs d'une négligence administrative.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         for racine in ['471', '472']:
             df_attente = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
@@ -351,7 +351,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
     r.append(" Surveille les créances sur tiers et les dossiers au contentieux.")
-    r.append("   Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
+    r.append(" Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         for racine in ['461', '462']:
             df_tiers = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
@@ -489,7 +489,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SECTION H] ANALYSE DES FOURNISSEURS OCCASIONNELS (< 4 écritures/an)")
     r.append(" Isole les prestataires avec très peu d'activité. En copropriété, cela peut révéler")
-    r.append("   des factures de complaisance ou des dépenses ponctuelles non mises en concurrence.\n")
+    r.append(" des factures de complaisance ou des dépenses ponctuelles non mises en concurrence.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         if not df_401.empty and 'CREDIT' in df_401.columns:
@@ -521,7 +521,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SECTION I] CONTRÔLE DU FONDS DE TRAVAUX (COMPTES 105 & 502)")
     r.append(" Vérifie que les sommes appelées pour les travaux (105) sont réellement transférées")
-    r.append("   sur le compte d'épargne (502). Un écart indique une utilisation illégale de ces fonds pour la gestion courante.\n")
+    r.append(" sur le compte d'épargne (502). Un écart indique une utilisation illégale de ces fonds pour la gestion courante.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_105 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')].copy()
         df_502 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')].copy()
@@ -529,8 +529,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         solde_theorique_travaux = df_105['CREDIT'].sum() - df_105['DEBIT'].sum() if not df_105.empty else 0
         solde_reel_placement = df_502['DEBIT'].sum() - df_502['CREDIT'].sum() if not df_502.empty else 0
         
-        r.append(f"   💰 Réserves travaux appelées (105) : {solde_theorique_travaux:.2f}€")
-        r.append(f"   🏦 Placement réel sur Livret (502)  : {solde_reel_placement:.2f}€")
+        r.append(f"    Réserves travaux appelées (105) : {solde_theorique_travaux:.2f}€")
+        r.append(f"    Placement réel sur Livret (502)  : {solde_reel_placement:.2f}€")
         
         ecart_placement = solde_theorique_travaux - solde_reel_placement
         if ecart_placement > 1.00:
@@ -546,9 +546,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
-    r.append(" Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
-    r.append("   L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
-    r.append("   Tarifs extraits du contrat du syndic :")
+    r.append("Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
+    r.append(" L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
+    r.append("Tarifs extraits du contrat du syndic :")
     for cle, valeur in df_contrat.items():
         r.append(f"      • {cle:<35} : {valeur:.2f} EUR")
     r.append("")
