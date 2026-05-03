@@ -5,6 +5,7 @@ import pandas as pd
 import io
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from pathlib import Path
 from google import genai
@@ -13,6 +14,7 @@ from thefuzz import fuzz
 from scipy.optimize import linear_sum_assignment
 from fpdf import FPDF
 from pypdf import PdfWriter
+
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -608,11 +610,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 ##############################################################################################################################################################"
 
-# --- GENERATION DE GRAPHIQUE ---
-
-from fpdf import FPDF
-import matplotlib.pyplot as plt
-import os
+# --- GENERATION DE GRAPHIQUES ---
 
 def generer_rapport_graphique(df_gl):
     pdf = FPDF()
