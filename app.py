@@ -137,7 +137,7 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     """
     Extrait les tarifs du contrat et les range dans une grille fixe, 
     indépendamment de la formulation utilisée par le syndic.
-    En sortie, on a des tarifs du type:
+    En sortie, on a des tarifs du type (exemples ci-dessous mais les tarifs sont lus dans le contrat):
     JSON
     "forfait_annuel": 20700.0,
     "vacation_horaire": 165.0,
@@ -832,7 +832,10 @@ def generer_rapport_graphique(df_gl):
     nom_fichier = "Rapport_Graphique_Audit.pdf"
     pdf.output(nom_fichier)
     return nom_fichier
-    
+
+
+
+
 ##############################################################################################################################################################"
 
 # --- INTERFACE STREAMLIT ---
@@ -941,41 +944,50 @@ with col2:
                         contents=prompt_complet
                     )
                     synthese_texte = response.text
-                
+                    st.write("✅ Réponse Gemini reçue") ##################" DEBUG
+                    
+                    # --- NETTOYAGE ULTRA-ROBUSTE ---
+                    # 1. On remplace les caractères spéciaux courants avant de filtrer
+                    texte_clean = synthese_texte.replace('’', "'").replace('€', ' Euros').replace('–', '-')
+                        
+                    # 2. Suppression de tous les émojis et caractères non-Latin-1 pour éviter le crash PDF
+                    # Cette regex garde les lettres, chiffres, ponctuation standard et symboles mathématiques de base
+                    texte_clean = re.sub(r'[^\x00-\xff]', '', texte_clean) 
+                    
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_auto_page_break(auto=True, margin=15)
-                    # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
+                        
+                    # En-tête
                     pdf.set_font("helvetica", "B", 16)
-                    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C', new_x="LMARGIN", new_y="NEXT")
                     pdf.ln(5)
-        
-                    # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                    # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
-                    texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
                     
-                    # Utilisation de write_html pour interpréter le gras (**) de Gemini
-                    # fpdf2 convertit automatiquement le Markdown simple en HTML interne
+                    # Corps du texte
                     pdf.set_font("helvetica", size=11)
+                        
+                    # On utilise multi_cell mais on capture l'erreur potentielle au cas par cas
+                    try:
+                        pdf.multi_cell(0, 6, texte_clean, markdown=True)
+                    except Exception:
+                        # Si le rendu Markdown plante encore, on l'affiche en texte brut (mieux que rien)
+                        pdf.multi_cell(0, 6, texte_clean, markdown=False)
                     
-                    # On utilise le rendu Markdown de fpdf2
-                    # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
-                    # passer par la méthode dédiée aux textes longs :
-                    pdf.multi_cell(0, 6, texte_final, markdown=True) 
-                
-                    pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
-                   
-                    progress_bar.progress(100)
+                    pdf_output = bytes(pdf.output()) 
+                    
                     st.success("Analyse terminée.")
-                    
                     st.download_button(
                         label="📥 Télécharger le rapport de synthèse (pdf)",
                         data=pdf_output,
                         file_name="Rapport_Synthese.pdf",
                         mime="application/pdf"
                     )
+
                 except Exception as e:
-                    st.error(f"❌ Erreur lors de la génération du pdf : {e}")
+                    st.error(f"❌ Erreur critique : {str(e)}")
+                    # Sauvegarde de secours : on affiche le texte dans Streamlit pour que l'utilisateur ne perde rie,
+                    with st.expander("Afficher le texte de l'analyse (Secours)"):
+                        st.markdown(synthese_texte)
             
             
             
