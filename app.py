@@ -5,7 +5,6 @@ import pandas as pd
 import io
 import json
 import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from pathlib import Path
 from google import genai
@@ -14,9 +13,9 @@ from thefuzz import fuzz
 from scipy.optimize import linear_sum_assignment
 from fpdf import FPDF
 from pypdf import PdfWriter
-
-# Forcer Matplotlib à fonctionner en arrière-plan (sans GUI)
-matplotlib.use('Agg')
+import matplotlib
+matplotlib.use('Agg')  # Indispensable pour Streamlit
+import matplotlib.pyplot as plt
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
