@@ -544,7 +544,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     return "\n".join(r)
 
 
-# --- SECTION J : CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
+# --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
     r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
@@ -560,7 +560,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
         if tarif_forfait_contrat > 0:
             total_paye_6211 = df_6211['DEBIT'].sum()
-            if total_paye_6211 > (tarif_forfait_contrat * (1+0.02)): # Tolérance pour prise en compte des ajustements éventuels liés à une inflation de 2% (parfois prévu au contrat)
+            if total_paye_6211 > (tarif_forfait_contrat * 1.02): # Tolérance de 2% pour l'inflation
                 r.append(f"   ❌ SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
                 r.append(f"      👉 Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
                 anomalies_detectees += 1
@@ -596,18 +596,28 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             r.append(f"   ❌ ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"      👉 Prestation non tarifée ou incluse dans le forfait selon le contrat.")
                             anomalies_detectees += 1
-                        elif montant_paye > (tarif_contrat + 0.10):  #Marge d'arrondi
+                        
+                        # Cas spécifique : Vacation horaire (plusieurs heures possibles)
+                        elif cle_contrat == "vacation_horaire":
+                            if montant_paye > (tarif_contrat + 0.10):
+                                n_heures = montant_paye / tarif_contrat
+                                r.append(f"   ℹ️ INFO : Vacation détectée ({date_str}) pour {montant_paye}€.")
+                                r.append(f"      👉 Cela correspond à {n_heures:.2f} heure(s) au tarif contractuel de {tarif_contrat}€/h.")
+                            # On ne compte pas d'anomalie ici car le montant dépend du temps passé
+                        
+                        # Cas général : Frais fixes unitaires
+                        elif montant_paye > (tarif_contrat + 0.10):
                             r.append(f"   ❌ SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"      👉 Le tarif contractuel est de {tarif_contrat}€ TTC.")
                             anomalies_detectees += 1
+                        
                         break 
             
         if anomalies_detectees == 0:
             r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
             
     else:
-        r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")
-        
+        r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
 
 ##############################################################################################################################################################"
 
@@ -871,7 +881,7 @@ if releves_files:
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 1 and not fichiers_doublons  #################### REMETTTRE 12 APRES DEBOGAGE
+    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 2 and not fichiers_doublons  #################### REMETTTRE 12 APRES DEBOGAGE
     if documents_prets:
         st.markdown(" ")
         st.markdown(" ")
@@ -1007,4 +1017,3 @@ st.markdown("---")
 st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes.")
 st.caption(" ###### Protection des données: aucune donnée de votre copropriété n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
 st.caption(" ###### Tous droits réservés.")
-st.stop()
