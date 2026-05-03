@@ -946,35 +946,29 @@ with col2:
                     synthese_texte = response.text
                     st.write("✅ Réponse Gemini reçue") ##################" DEBUG
                     
-                    # --- NETTOYAGE ULTRA-ROBUSTE ---
-                    # 1. On remplace les caractères spéciaux courants avant de filtrer
-                    texte_clean = synthese_texte.replace('’', "'").replace('€', ' Euros').replace('–', '-')
-                        
-                    # 2. Suppression de tous les émojis et caractères non-Latin-1 pour éviter le crash PDF
-                    # Cette regex garde les lettres, chiffres, ponctuation standard et symboles mathématiques de base
-                    texte_clean = re.sub(r'[^\x00-\xff]', '', texte_clean) 
-                    
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_auto_page_break(auto=True, margin=15)
-                        
-                    # En-tête
+                    # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
                     pdf.set_font("helvetica", "B", 16)
-                    pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C', new_x="LMARGIN", new_y="NEXT")
+                    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
                     pdf.ln(5)
+        
+                    # Nettoyage du texte pour éviter les erreurs d'encodage communes
+                    # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
+                    texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
                     
-                    # Corps du texte
+                    # Utilisation de write_html pour interpréter le gras (**) de Gemini
+                    # fpdf2 convertit automatiquement le Markdown simple en HTML interne
                     pdf.set_font("helvetica", size=11)
-                        
-                    # On utilise multi_cell mais on capture l'erreur potentielle au cas par cas
-                    try:
-                        pdf.multi_cell(0, 6, texte_clean, markdown=True)
-                    except Exception:
-                        # Si le rendu Markdown plante encore, on l'affiche en texte brut (mieux que rien)
-                        pdf.multi_cell(0, 6, texte_clean, markdown=False)
                     
-                    pdf_output = bytes(pdf.output()) 
-                    
+                    # On utilise le rendu Markdown de fpdf2
+                    # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
+                    # passer par la méthode dédiée aux textes longs :
+                    pdf.multi_cell(0, 6, texte_final, markdown=True) 
+                
+                    pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
+                   
                     st.success("Analyse terminée.")
                     st.download_button(
                         label="📥 Télécharger le rapport de synthèse (pdf)",
@@ -982,13 +976,8 @@ with col2:
                         file_name="Rapport_Synthese.pdf",
                         mime="application/pdf"
                     )
-
                 except Exception as e:
-                    st.error(f"❌ Erreur critique : {str(e)}")
-                    # Sauvegarde de secours : on affiche le texte dans Streamlit pour que l'utilisateur ne perde rie,
-                    with st.expander("Afficher le texte de l'analyse (Secours)"):
-                        st.markdown(synthese_texte)
-            
+                    st.error(f"❌ Erreur lors de la génération du pdf : {e}")
             
             
             # --- APERÇU DES DONNÉES CONVERTIES ---
