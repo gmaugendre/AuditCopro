@@ -548,6 +548,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
     r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
     r.append("   L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
+    r.append("   Tarifs extraits du contrat du syndic :")
+    for cle, valeur in df_contrat.items():
+        r.append(f"      • {cle:<35} : {valeur:.2f} EUR")
+    r.append("")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
         # 1. Traitement spécifique du FORFAIT ANNUEL (Compte 6211)
@@ -911,13 +915,13 @@ with col2:
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
-                progress_bar.progress(30)
+                progress_bar.progress(40)
  
                 # Fusion et lecture des relevés bancaires
                 merged_bank_path = merge_pdfs(releves_files, "rb")
                 status.update(label="🏦 Lecture des relevés bancaires...", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
-                progress_bar.progress(50)
+                progress_bar.progress(60)
  
                 # Lecture contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
@@ -975,9 +979,14 @@ with col2:
                     pdf.ln(5)
         
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                    # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
-                    texte_final = synthese_texte.replace('’', "'").replace('€', ' EUR')
-                    
+                    texte_final = (synthese_texte
+                        .replace(''', "'").replace(''', "'")
+                        .replace('"', '"').replace('"', '"')
+                        .replace('–', '-').replace('—', '-')
+                        .replace('…', '...').replace('•', '-')
+                        .replace('€', ' EUR').replace('²', '2')
+                        .replace('\u00a0', ' ')  # espace insécable
+                    )                    
                     # Utilisation de write_html pour interpréter le gras (**) de Gemini
                     # fpdf2 convertit automatiquement le Markdown simple en HTML interne
                     pdf.set_font("helvetica", size=11)
@@ -1000,7 +1009,13 @@ with col2:
                     
                     pdf.set_font("courier", size=8)
                     pdf.set_text_color(0, 0, 0)
-                    texte_annexes = rapport_final.replace('€', ' EUR')
+                    texte_annexes = (rapport_final
+                        .replace('€', ' EUR')
+                        .replace('–', '-').replace('—', '-')
+                        .replace(''', "'").replace(''', "'")
+                        .replace('"', '"').replace('"', '"')
+                        .replace('…', '...').replace('\u00a0', ' ')
+                    )
                     pdf.multi_cell(0, 4.5, texte_annexes)
  
                     st.session_state["pdf_synthese"] = bytes(pdf.output())
