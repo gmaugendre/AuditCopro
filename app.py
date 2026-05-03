@@ -769,8 +769,11 @@ with col2:
 
             with st.expander("Voir les tarifs extraits du contrat"):
                 st.json(contrat_df)
-    
-            # st.info("Toutes les données ont été supprimées.")
+                
+        #shutil.rmtree(UPLOAD_DIR)      # Supprime tout le dossier de stockage  ############################" A DECOMMENTER APRES DEBUGGAGE
+        #os.makedirs(UPLOAD_DIR)        # Le recrée vide pour la prochaine utilisation
+        #st.info("Toutes les données ont été supprimées.")
+
     else:
         st.markdown(" ")
         st.markdown(" ")
