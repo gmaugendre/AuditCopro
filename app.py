@@ -749,6 +749,7 @@ with col2:
             
             
             # --- APERÇU DES DONNÉES CONVERTIES ---
+            
             st.markdown("---")
             st.markdown("### 🛠️ Aperçu des conversions")
             
@@ -767,7 +768,7 @@ with col2:
                 st.download_button("💾 Télécharger Banque en Excel", output_bk.getvalue(), "Banque_convertie.xlsx")
 
             with st.expander("Voir les tarifs extraits du contrat"):
-                st.json(df_contrat)
+                st.json(contrat_df)
     
             # st.info("Toutes les données ont été supprimées.")
     else:
