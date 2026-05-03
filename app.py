@@ -620,6 +620,7 @@ st.markdown("---")
 # st.subheader("Conseils syndicaux : reprenez le contrôle !")
 # st.markdown("---")
 
+# --- CHARGEMENT DES DONNEES ---
 
 col1, col2 = st.columns(2)
 with col1:
@@ -656,14 +657,16 @@ with col2:
         if st.button("Générer le rapport d'analyse", type="primary"):
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
                 progress_bar = st.progress(10)
+
+                # --- LECTURE DES DONNEES PAR L'IA ---
                 
-                # Extraction
+                # Un appel IA pour lire le grand livre
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
                 progress_bar.progress(30)
                 
-                # On fusionne les relevés de banque pdf
+                # On fusionne les relevés de banque pdf avant de les convertir en excel
                 merged_bank_path = merge_pdfs(releves_files, "rb")
                 
                 # Un seul appel IA pour tous les relevés bancaires agrégés
@@ -674,17 +677,16 @@ with col2:
                 # Un appel IA pour lire le contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
-                progress_bar.progress(70)        
+                progress_bar.progress(70)
 
-                st.stop()
+                # --- AUDIT COMPTABLE: REGLES EN DUR PARCOURUES SUCCESIVEMENT ---
 
-                # AUDIT COMPTABLE
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
                 rapport_final = generer_rapport_audit(gl_df, bank_df, contrat_df)
                 progress_bar.progress(80)
     
-        
                 # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
+                
                 status.update(label="✍️ Rédaction de la synthèse...")
                 
                 instructions_gemini = """Ton objectif est de rédiger un rapport de synthèse basé sur les données d'analyse brute fournies. 
@@ -701,7 +703,7 @@ with col2:
     
                 prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
             
-                # --- GÉNÉRATION DU PDF VIA FPDF2 ---
+                # --- GÉNÉRATION DU PDF ---
                 try:
                     response = client.models.generate_content(
                         model=GEMINI_MODEL,
