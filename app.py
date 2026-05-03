@@ -954,14 +954,6 @@ with col2:
                 1. Introduction : période analysée et état général de la copropriété.
                 2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
                 3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
-                
-                CONTRAINTES DE FORMATAGE STRICTES (compatibilité PDF) :
-                - INTERDIT : tableaux Markdown (pas de | ni de ---).
-                - INTERDIT : émojis ou symboles graphiques.
-                - INTERDIT : le symbole € (écrire "Euros" à la place).
-                - AUTORISÉ : listes à puces (-) pour présenter dates, montants, libellés.
-                - AUTORISÉ : titres en majuscules et texte en gras (**mot**).
-                - Caractères uniquement alphanumériques standards.
                 """
   
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
