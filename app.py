@@ -15,6 +15,8 @@ from scipy.optimize import linear_sum_assignment
 from fpdf import FPDF
 from pypdf import PdfWriter
 
+# Forcer Matplotlib à fonctionner en arrière-plan (sans GUI)
+matplotlib.use('Agg')
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -614,10 +616,14 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 def generer_rapport_graphique(df_gl):
     pdf = FPDF()
+    
+    # =========================================================================
+    # --- PAGE 1 : EN-TÊTE ET GRAPHIQUE 1 (RÉPARTITION PAR GRANDS POSTES) ---
+    # =========================================================================
     pdf.add_page()
     
-    # --- 1. En-tête Stylisé ---
-    pdf.set_fill_color(41, 128, 185) # Bleu
+    # 1. En-tête Stylisé
+    pdf.set_fill_color(41, 128, 185) # Bleu "Expert"
     pdf.rect(0, 0, 210, 45, 'F')
     pdf.set_font("helvetica", "B", 24)
     pdf.set_text_color(255, 255, 255)
@@ -626,51 +632,198 @@ def generer_rapport_graphique(df_gl):
     pdf.cell(0, 5, "Visualisation des flux financiers de la copropriété", ln=True, align='C')
     pdf.ln(30)
     
-    # --- 2. Génération du Graphique Top 10 Fournisseurs ---
+    # 2. Graphique Répartition des dépenses par grands postes
     pdf.set_text_color(0, 0, 0)
     pdf.set_font("helvetica", "B", 16)
-    pdf.cell(0, 10, "1. Répartition des 10 principaux prestataires", ln=True)
+    pdf.cell(0, 10, "1. Répartition des dépenses par grands postes", ln=True)
     pdf.ln(5)
-    
-    # Traitement des données
+
+    df_charges = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)].copy()
+    if not df_charges.empty:
+        df_charges['CLASSE'] = df_charges['NUMERO_COMPTE'].astype(str).str[:2]
+        
+        mapping_noms = {
+            '60': 'Énergie & Fluides (Eau/Elec)',
+            '61': 'Contrats d\'entretien & Services',
+            '62': 'Frais Admin & Syndic',
+            '63': 'Impôts et Taxes',
+            '64': 'Personnel (Gardien)',
+            '66': 'Frais Financiers',
+            '67': 'Travaux exceptionnels',
+            '68': 'Dotations aux provisions'
+        }
+        df_charges['POSTE_NOM'] = df_charges['CLASSE'].map(lambda x: mapping_noms.get(x, f"Autres (Classe {x})"))
+        repartition = df_charges.groupby('POSTE_NOM')['DEBIT'].sum()
+
+        graph_path_poste = "temp_repartition.png"
+        plt.figure(figsize=(8, 5.5))
+        colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e', '#1abc9c']
+        plt.pie(repartition, labels=repartition.index, autopct='%1.1f%%', startangle=140, colors=colors, pctdistance=0.85)
+        centre_circle = plt.Circle((0,0), 0.70, fc='white')
+        plt.gca().add_artist(centre_circle)
+        plt.title('Où va l\'argent ? (Répartition des charges)', fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(graph_path_poste, dpi=300)
+        plt.close()
+
+        pdf.image(graph_path_poste, x=25, w=160)
+        pdf.ln(5)
+
+        pdf.set_font("helvetica", "I", 11)
+        pdf.set_text_color(80, 80, 80)
+        analyse_charges = (
+            "Analyse : Ce graphique montre les principaux centres de coûts de la copropriété. "
+            "Les postes Contrats d'entretien (61) et Énergie (60) représentent généralement "
+            "l'essentiel du budget et doivent être contrôlés régulièrement."
+        )
+        pdf.multi_cell(0, 6, analyse_charges)
+        
+        if os.path.exists(graph_path_poste):
+            os.remove(graph_path_poste)
+    else:
+        pdf.set_font("helvetica", "I", 11)
+        pdf.cell(0, 10, "Données de charges insuffisantes pour générer ce graphique.", ln=True)
+
+    # =========================================================================
+    # --- PAGE 2 : GRAPHIQUE 2 (TOP 10 FOURNISSEURS) ---
+    # =========================================================================
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 16)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "2. Répartition des 10 principaux prestataires", ln=True)
+    pdf.ln(5)
+
     df_fournisseurs = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
-    df_fournisseurs['LIBELLE_CLEAN'] = df_fournisseurs['LIBELLE'].str.strip().str.upper()
-    top_10 = df_fournisseurs.groupby('LIBELLE_CLEAN')['CREDIT'].sum().sort_values(ascending=True).tail(10)
+    if not df_fournisseurs.empty:
+        df_fournisseurs['LIBELLE_CLEAN'] = df_fournisseurs['LIBELLE'].str.strip().str.upper()
+        top_10 = df_fournisseurs.groupby('LIBELLE_CLEAN')['CREDIT'].sum().sort_values(ascending=True).tail(10)
 
-    # Création du fichier image temporaire
-    graph_path = "temp_top_10.png"
-    plt.figure(figsize=(10, 6))
-    top_10.plot(kind='barh', color='#3498db')
-    plt.title('Top 10 Fournisseurs (Montants TTC)', fontsize=14, fontweight='bold')
-    plt.xlabel('Total (€)')
-    plt.grid(axis='x', linestyle='--', alpha=0.6)
-    plt.tight_layout()
-    plt.savefig(graph_path, dpi=300)
-    plt.close()
+        graph_path_fourn = "temp_top_10.png"
+        plt.figure(figsize=(10, 5.5))
+        top_10.plot(kind='barh', color='#3498db')
+        plt.title('Top 10 Fournisseurs (Montants TTC)', fontsize=14, fontweight='bold')
+        plt.xlabel('Total (€)')
+        plt.grid(axis='x', linestyle='--', alpha=0.6)
+        plt.tight_layout()
+        plt.savefig(graph_path_fourn, dpi=300)
+        plt.close()
 
-    # Insertion dans le PDF
-    pdf.image(graph_path, x=15, w=180)
+        pdf.image(graph_path_fourn, x=15, w=180)
+        pdf.ln(5)
+        
+        pdf.set_font("helvetica", "I", 11)
+        pdf.set_text_color(80, 80, 80)
+        analyse_fournisseurs = (
+            "Interprétation : Ce graphique met en évidence la concentration des dépenses par fournisseur. "
+            "Si un seul prestataire représente une part disproportionnée du budget, il est conseillé "
+            "de solliciter des devis comparatifs."
+        )
+        pdf.multi_cell(0, 6, analyse_fournisseurs)
+        
+        if os.path.exists(graph_path_fourn):
+            os.remove(graph_path_fourn)
+    else:
+        pdf.set_font("helvetica", "I", 11)
+        pdf.cell(0, 10, "Aucune donnée de fournisseur (classe 401) disponible.", ln=True)
+
+    # =========================================================================
+    # --- PAGE 3 : GRAPHIQUE 3 (ÉVOLUTION MENSUELLE DE LA TRÉSORERIE) ---
+    # =========================================================================
+    # ... (Le reste du code reste inchangé) ...
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 16)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "3. Évolution mensuelle de la trésorerie", ln=True)
     pdf.ln(5)
-    
-    # --- 3. Bloc d'analyse ---
-    pdf.set_font("helvetica", "I", 11)
-    pdf.set_text_color(80, 80, 80)
-    analyse_text = (
-        "Interprétation : Ce graphique met en évidence la concentration des dépenses. "
-        "Si un seul prestataire représente une part disproportionnée du budget (hors chauffage/énergie), "
-        "il est conseillé de vérifier la mise en concurrence de son contrat."
-    )
-    pdf.multi_cell(0, 6, analyse_text)
-    
-    # Nettoyage
-    if os.path.exists(graph_path):
-        os.remove(graph_path)
 
-    # Sauvegarde du rapport
+    df_512 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('512')].copy()
+    if not df_512.empty and 'DATE' in df_512.columns:
+        df_512['DATE'] = pd.to_datetime(df_512['DATE'], errors='coerce')
+        df_512 = df_512.dropna(subset=['DATE'])
+        
+        df_512['SOLDE_MVT'] = df_512['DEBIT'].fillna(0) - df_512['CREDIT'].fillna(0)
+        df_512 = df_512.sort_values('DATE')
+        
+        df_512['MOIS'] = df_512['DATE'].dt.to_period('M')
+        mensuel = df_512.groupby('MOIS')['SOLDE_MVT'].sum().reset_index()
+        mensuel['TRESORERIE'] = mensuel['SOLDE_MVT'].cumsum()
+        mensuel['MOIS_STR'] = mensuel['MOIS'].astype(str)
+
+        graph_path3 = "temp_tresorerie.png"
+        plt.figure(figsize=(10, 5.5))
+        plt.plot(mensuel['MOIS_STR'], mensuel['TRESORERIE'], marker='o', color='#2ecc71', linewidth=2.5)
+        plt.title('Trésorerie cumulée mois par mois (€)', fontsize=14, fontweight='bold')
+        plt.xlabel('Mois')
+        plt.ylabel('Solde bancaire (€)')
+        plt.xticks(rotation=45)
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.savefig(graph_path3, dpi=300)
+        plt.close()
+
+        pdf.image(graph_path3, x=15, w=180)
+        pdf.ln(5)
+
+        pdf.set_font("helvetica", "I", 11)
+        pdf.set_text_color(80, 80, 80)
+        analyse_treso = (
+            "Analyse : Ce graphique présente le niveau d'argent disponible sur le compte de la "
+            "copropriété à la fin de chaque mois."
+        )
+        pdf.multi_cell(0, 6, analyse_treso)
+        
+        if os.path.exists(graph_path3):
+            os.remove(graph_path3)
+    else:
+        pdf.set_font("helvetica", "I", 11)
+        pdf.cell(0, 10, "Données de trésorerie (compte 512) insuffisantes.", ln=True)
+
+    # =========================================================================
+    # --- PAGE 4 : GRAPHIQUE 4 (ÉTAT DES IMPAYÉS DES COPROPRIÉTAIRES) ---
+    # =========================================================================
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 16)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, "4. État des impayés des copropriétaires", ln=True)
+    pdf.ln(5)
+
+    df_450 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('450')].copy()
+    if not df_450.empty:
+        df_450['LIBELLE_CLEAN'] = df_450['LIBELLE'].str.strip().str.upper()
+        
+        solde_450 = df_450.groupby('LIBELLE_CLEAN').apply(lambda x: x['DEBIT'].sum() - x['CREDIT'].sum()).reset_index()
+        solde_450.columns = ['Copropriétaire', 'Dette']
+        
+        impayes = solde_450[solde_450['Dette'] > 0.1].sort_values(by='Dette', ascending=False).head(10)
+        
+        if not impayes.empty:
+            impayes['Label_Anon'] = [f"Copropriétaire {chr(65+i)}" for i in range(len(impayes))]
+
+            graph_path4 = "temp_impayes.png"
+            plt.figure(figsize=(10, 5.5))
+            plt.bar(impayes['Label_Anon'], impayes['Dette'], color='#e74c3c')
+            plt.title('Top 10 des impayés les plus importants (€)', fontsize=14, fontweight='bold')
+            plt.xlabel('Copropriétaires (Anonymisés)')
+            plt.ylabel('Montant de la dette (€)')
+            plt.grid(axis='y', linestyle='--', alpha=0.5)
+            plt.tight_layout()
+            plt.savefig(graph_path4, dpi=300)
+            plt.close()
+
+            pdf.image(graph_path4, x=15, w=180)
+            pdf.ln(5)
+
+            pdf.set_font("helvetica", "I", 11)
+            pdf.set_text_color(80, 80, 80)
+            pdf.multi_cell(0, 6, "Analyse : Ce graphique met en évidence les retards de paiement les plus élevés.")
+            
+            if os.path.exists(graph_path4):
+                os.remove(graph_path4)
+
     nom_fichier = "Rapport_Graphique_Audit.pdf"
     pdf.output(nom_fichier)
     return nom_fichier
-
+    
 ##############################################################################################################################################################"
 
 # --- INTERFACE STREAMLIT ---
