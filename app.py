@@ -954,55 +954,55 @@ with col2:
                     synthese_texte = response.text
                     st.info("✅ Réponse Gemini reçue. Tentative de création du PDF...")
                     
-                        # Nettoyage radical (Anti-crash)
-                        import re
-                        # Remplace les caractères risqués
-                        t_clean = synthese_texte.replace('’', "'").replace('€', ' Euros').replace('–', '-')
-                        # Supprime tout ce qui n'est pas supporté par la police standard
-                        t_clean = t_clean.encode('latin-1', 'replace').decode('latin-1')
-                        # On enlève les résidus de Markdown complexe que fpdf2 n'aime pas parfois
-                        t_clean = re.sub(r'[#*>-]', '', t_clean) 
+                    # Nettoyage radical (Anti-crash)
+                    import re
+                    # Remplace les caractères risqués
+                    t_clean = synthese_texte.replace('’', "'").replace('€', ' Euros').replace('–', '-')
+                    # Supprime tout ce qui n'est pas supporté par la police standard
+                    t_clean = t_clean.encode('latin-1', 'replace').decode('latin-1')
+                    # On enlève les résidus de Markdown complexe que fpdf2 n'aime pas parfois
+                    t_clean = re.sub(r'[#*>-]', '', t_clean) 
                     
-                        # Création du PDF
-                        pdf = FPDF()
-                        pdf.add_page()
-                        pdf.set_font("helvetica", "B", 16)
-                        pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C')
-                        pdf.ln(10)
+                    # Création du PDF
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("helvetica", "B", 16)
+                    pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C')
+                    pdf.ln(10)
                         
-                        pdf.set_font("helvetica", size=11)
-                        # On désactive markdown=True temporairement pour être SÛR que ça ne vient pas de là
-                        pdf.multi_cell(0, 6, t_clean) 
+                    pdf.set_font("helvetica", size=11)
+                    # On désactive markdown=True temporairement pour être SÛR que ça ne vient pas de là
+                    pdf.multi_cell(0, 6, t_clean) 
                     
-                        # Conversion ultra-sûre en Bytes
-                        try:
-                            pdf_bytes = pdf.output()
-                            if isinstance(pdf_bytes, bytearray) or isinstance(pdf_bytes, bytes):
-                                final_data = bytes(pdf_bytes)
-                            else:
-                                # Pour certaines versions de fpdf2, il faut forcer la sortie brute
-                                final_data = pdf.output(dest='S').encode('latin-1')
-                        except Exception as e_pdf:
-                            st.error(f"Erreur technique lors de la conversion binaire : {e_pdf}")
-                            final_data = None
-                    
-                        # Affichage du bouton SI les données sont prêtes
-                        if final_data:
-                            st.success("Analyse terminée avec succès !")
-                            st.download_button(
-                                label="📥 Télécharger le rapport de synthèse (pdf)",
-                                data=final_data,
-                                file_name="Rapport_Synthese.pdf",
-                                mime="application/pdf"
-                            )
+                    # Conversion ultra-sûre en Bytes
+                    try:
+                        pdf_bytes = pdf.output()
+                        if isinstance(pdf_bytes, bytearray) or isinstance(pdf_bytes, bytes):
+                            final_data = bytes(pdf_bytes)
                         else:
-                            st.warning("Le PDF n'a pas pu être converti en binaire.")
+                            # Pour certaines versions de fpdf2, il faut forcer la sortie brute
+                            final_data = pdf.output(dest='S').encode('latin-1')
+                    except Exception as e_pdf:
+                        st.error(f"Erreur technique lors de la conversion binaire : {e_pdf}")
+                        final_data = None
                     
-                    except Exception as e:
-                        st.error(f"❌ Erreur critique : {str(e)}")
-                        # ROBUSTESSE ULTIME : Si le PDF échoue, on affiche quand même le texte
-                        st.subheader("Texte de l'analyse (affichage de secours) :")
-                        st.markdown(synthese_texte)            
+                    # Affichage du bouton SI les données sont prêtes
+                    if final_data:
+                        st.success("Analyse terminée avec succès !")
+                        st.download_button(
+                            label="📥 Télécharger le rapport de synthèse (pdf)",
+                            data=final_data,
+                            file_name="Rapport_Synthese.pdf",
+                            mime="application/pdf"
+                        )
+                    else:
+                        st.warning("Le PDF n'a pas pu être converti en binaire.")
+                    
+                except Exception as e:
+                    st.error(f"❌ Erreur critique : {str(e)}")
+                    # ROBUSTESSE ULTIME : Si le PDF échoue, on affiche quand même le texte
+                    st.subheader("Texte de l'analyse (affichage de secours) :")
+                    st.markdown(synthese_texte)            
             
             # --- APERÇU DES DONNÉES CONVERTIES ---
             
