@@ -608,6 +608,73 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 ##############################################################################################################################################################"
 
+# --- GENERATION DE GRAPHIQUE ---
+
+from fpdf import FPDF
+import matplotlib.pyplot as plt
+import os
+
+def generer_rapport_graphique(df_gl):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # --- 1. En-tête Stylisé ---
+    pdf.set_fill_color(41, 128, 185) # Bleu
+    pdf.rect(0, 0, 210, 45, 'F')
+    pdf.set_font("helvetica", "B", 24)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(0, 25, "ANNEXES GRAPHIQUES", ln=True, align='C')
+    pdf.set_font("helvetica", "I", 12)
+    pdf.cell(0, 5, "Visualisation des flux financiers de la copropriété", ln=True, align='C')
+    pdf.ln(30)
+    
+    # --- 2. Génération du Graphique Top 10 Fournisseurs ---
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("helvetica", "B", 16)
+    pdf.cell(0, 10, "1. Répartition des 10 principaux prestataires", ln=True)
+    pdf.ln(5)
+    
+    # Traitement des données
+    df_fournisseurs = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
+    df_fournisseurs['LIBELLE_CLEAN'] = df_fournisseurs['LIBELLE'].str.strip().str.upper()
+    top_10 = df_fournisseurs.groupby('LIBELLE_CLEAN')['CREDIT'].sum().sort_values(ascending=True).tail(10)
+
+    # Création du fichier image temporaire
+    graph_path = "temp_top_10.png"
+    plt.figure(figsize=(10, 6))
+    top_10.plot(kind='barh', color='#3498db')
+    plt.title('Top 10 Fournisseurs (Montants TTC)', fontsize=14, fontweight='bold')
+    plt.xlabel('Total (€)')
+    plt.grid(axis='x', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(graph_path, dpi=300)
+    plt.close()
+
+    # Insertion dans le PDF
+    pdf.image(graph_path, x=15, w=180)
+    pdf.ln(5)
+    
+    # --- 3. Bloc d'analyse ---
+    pdf.set_font("helvetica", "I", 11)
+    pdf.set_text_color(80, 80, 80)
+    analyse_text = (
+        "Interprétation : Ce graphique met en évidence la concentration des dépenses. "
+        "Si un seul prestataire représente une part disproportionnée du budget (hors chauffage/énergie), "
+        "il est conseillé de vérifier la mise en concurrence de son contrat."
+    )
+    pdf.multi_cell(0, 6, analyse_text)
+    
+    # Nettoyage
+    if os.path.exists(graph_path):
+        os.remove(graph_path)
+
+    # Sauvegarde du rapport
+    nom_fichier = "Rapport_Graphique_Audit.pdf"
+    pdf.output(nom_fichier)
+    return nom_fichier
+
+##############################################################################################################################################################"
+
 # --- INTERFACE STREAMLIT ---
 
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
