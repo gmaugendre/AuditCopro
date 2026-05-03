@@ -932,28 +932,39 @@ with col2:
                 # Génération synthèse IA
                 status.update(label="✍️ Rédaction de la synthèse...", expanded=True)
  
-                instructions_gemini = """
-                Tu es un Auditeur Spécialisé en Copropriété. Ton objectif est de transformer des données comptables brutes en un rapport stratégique pour le Conseil Syndical.
-                ### POSTURE ET TON :
-                - Pédagogue et Humble : Explique le "pourquoi" derrière les chiffres. Utilise le conditionnel ("pourrait", "semblerait") pour nuancer les conclusions.
-                - Diplomate : Ne sois jamais accusateur envers le syndic. Remplace "surfacturation" par "écart à clarifier" et "erreur" par "anomalie potentielle à vérifier".
-                - Cible : Copropriétaires non-comptables. Sois clair, rassurant mais vigilant.
-                ### STRUCTURE DU RAPPORT :
-                1. **Introduction** : Résumé de la période auditée et santé globale de la copropriété.
-                2. **Sections Thématiques** : Analyse des charges, contrats syndic, et impayés.
-                3. **Points de Vigilance** : Liste des éléments précis nécessitant une explication du syndic lors de la prochaine AG.
-                4. **Conclusion** : Recommandations concrètes.
-                5. **Annexe Technique** : Copie intégrale des données d'analyse brute fournies.
-                ### CONTRAINTES DE FORMATAGE (STRICTES pour compatibilité PDF) :
-                - **PAS DE TABLEAUX MARKDOWN** : N'utilise jamais de barres verticales | ou de tirets de tableaux. Présente les détails sous forme de listes à puces structurées.
-                - **PAS D'ÉMOJIS** : Aucun symbole graphique.
-                - **SYMBOLE MONÉTAIRE** : Remplace systématiquement le symbole '€' par le mot 'Euros'.
-                - **MARKDOWN SIMPLE** : Utilise uniquement le Gras pour les points importants et les listes à puces (-) pour le détail.
-                - **CARACTÈRES** : Utilise uniquement des caractères alphanumériques standards (évite les flèches, étoiles ou puces exotiques).
+                prompt_complet = f"""
+                Tu es un auditeur spécialisé en copropriété. Ton objectif est de rédiger 
+                un rapport de synthèse clair et pédagogue à partir des contrôles comptables ci-dessous:
+                
+                <DEBUT DU RESULTAT DES CONTROLES COMPTABLES>
+                {rapport_final}
+                <FIN DU RESULTAT DES CONTROLES COMPTABLES>
+                
+                POSTURE ET TON :
+                - Pédagogue : explique le "pourquoi" derrière chaque anomalie détectée.
+                - Diplomate : ne sois jamais accusateur envers le syndic. Remplace 
+                  "surfacturation" par "écart à clarifier", "erreur" par "point à vérifier".
+                - Prudent : utilise le conditionnel ("il semblerait", "pourrait indiquer").
+                - Humble : rappelle que ces analyses sont automatisées et peuvent comporter 
+                  des erreurs nécessitant vérification.
+                
+                CIBLE : Copropriétaires et membres du conseil syndical sans formation comptable.
+                
+                STRUCTURE OBLIGATOIRE :
+                1. Introduction : période analysée et état général de la copropriété.
+                2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
+                3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
+                5. Annexe : copie intégrale et sans modification du résultat des contrôles.
+                
+                CONTRAINTES DE FORMATAGE STRICTES (compatibilité PDF) :
+                - INTERDIT : tableaux Markdown (pas de | ni de ---).
+                - INTERDIT : émojis ou symboles graphiques.
+                - INTERDIT : le symbole € (écrire "Euros" à la place).
+                - AUTORISÉ : listes à puces (-) pour présenter dates, montants, libellés.
+                - AUTORISÉ : titres en majuscules et texte en gras (**mot**).
+                - Caractères uniquement alphanumériques standards.
                 """
- 
-                prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
- 
+  
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
                 try:
                     response = client.models.generate_content(
