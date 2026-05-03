@@ -25,11 +25,13 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-API_KEY = st.secrets["GEMINI_API_KEY"]
+API_KEY = st.secrets["GEMINI_API_KEY3"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 GEMINI_MODEL="gemini-2.5-flash"
 #GEMINI_MODEL="gemini-2.0-flash"
+
+THRESHOLD_FUZZ=85
 
 ##############################################################################################################################################################"
 
@@ -585,7 +587,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 date_str = date_val.strftime('%d/%m/%Y') if pd.notnull(date_val) else "N/A"
                 
                 for nom_cible, cle_contrat in mapping_audit.items():
-                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 85:
+                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > THRESHOLD_FUZZ:
                         tarif_contrat = df_contrat.get(cle_contrat, 0.0)
     
                         if tarif_contrat == 0:
@@ -952,7 +954,6 @@ with col2:
                 1. Introduction : période analysée et état général de la copropriété.
                 2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
                 3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
-                5. Annexe : copie intégrale et sans modification du résultat des contrôles.
                 
                 CONTRAINTES DE FORMATAGE STRICTES (compatibilité PDF) :
                 - INTERDIT : tableaux Markdown (pas de | ni de ---).
@@ -970,21 +971,29 @@ with col2:
                         contents=prompt_complet
                     )
                     synthese_texte = response.text
- 
-                    t_clean = synthese_texte.replace('\u2019', "'").replace('€', ' Euros').replace('–', '-')
-                    t_clean = t_clean.encode('latin-1', 'replace').decode('latin-1')
-                    t_clean = re.sub(r'[#*>-]', '', t_clean)
- 
+  
                     pdf = FPDF()
                     pdf.add_page()
+                    pdf.set_auto_page_break(auto=True, margin=15)
+                    # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
                     pdf.set_font("helvetica", "B", 16)
-                    pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C')
-                    pdf.ln(10)
+                    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.ln(5)
+        
+                    # Nettoyage du texte pour éviter les erreurs d'encodage communes
+                    # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
+                    texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
+                    
+                    # Utilisation de write_html pour interpréter le gras (**) de Gemini
+                    # fpdf2 convertit automatiquement le Markdown simple en HTML interne
                     pdf.set_font("helvetica", size=11)
-                    pdf.multi_cell(0, 6, t_clean)
+                    
+                    # On utilise le rendu Markdown de fpdf2
+                    # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
+                    # passer par la méthode dédiée aux textes longs :
+                    pdf.multi_cell(0, 6, texte_final, markdown=True) 
  
-                    pdf_bytes = pdf.output()
-                    st.session_state["pdf_synthese"] = bytes(pdf_bytes)
+                    st.session_state["pdf_synthese"] = pdf.output() # fpdf2 renvoie des bytes par défaut
                     st.session_state["synthese_texte"] = synthese_texte
  
                 except Exception as e:
