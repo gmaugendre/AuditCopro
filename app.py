@@ -136,18 +136,17 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     indépendamment de la formulation utilisée par le syndic.
     En sortie, on a des tarifs du type:
     JSON
-    "forfait_annuel": 15000.0,
+    "forfait_annuel": 20700.0,
     "vacation_horaire": 165.0,
     "mise_en_demeure": 45.0,
-    "relance_simple": 0.0,
+    "relance_simple": 33.0,
     "etat_date": 380.0,
-    "opposition_mutation": 120.0,
-    "mise_en_demeure_tiers": 45.0,
-    "injonction_payer": 0.0,
-    "reprise_compta_forfait": 0.0,
-    "reprise_compta_lot": 0.0,
-    "ag_supplementaire": 850.0,
-    "copie_pv": 15.0
+    "opposition_mutation": 192.0,
+    "mise_en_demeure_tiers": 50.0,
+    "injonction_payer": 200.0,
+    "reprise_compta_forfait": 500.0,
+    "ag_supplementaire": 800.0,
+    "copie_pv": 30.0   
     """
     # Lecture des octets directement depuis la mémoire
     pdf_bytes = uploaded_file.read() 
@@ -166,10 +165,9 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
         "mise_en_demeure_tiers": "Mise en demeure d'un tiers par lettre recommandée AR",
         "injonction_payer": "Dépôt d'une requête en injonction de payer",
         "reprise_compta_forfait": "Reprise de comptabilité sur exercices antérieurs (forfait)",
-        "reprise_compta_lot": "Reprise de comptabilité (par lot principal et par exercice)",
         "ag_supplementaire": "Assemblée générale supplémentaire (par lot, min. 800 € TTC)",
         "copie_pv": "Délivrance d'une copie certifiée conforme d'un PV d'AG"
-    }
+    } 
 
     prompt = f"""
     Agis comme un expert en audit de copropriété. Ton objectif est d'extraire les tarifs d'un contrat de syndic pour remplir une grille standardisée.
@@ -543,7 +541,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     return "\n".join(r)
 
 
-    # --- SECTION J : CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
+# --- SECTION J : CONTRÔLE DES FRAIS FACTURES PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
     r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
@@ -551,56 +549,62 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
         
-        # 1. Filtrage des honoraires sur df_gl
-        df_honoraires = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith(('621', '622'))) & (df_gl['DEBIT'] > 0)].copy()
+        # 1. Traitement spécifique du FORFAIT ANNUEL (Compte 6211)
+        tarif_forfait_contrat = df_contrat.get("forfait_annuel", 0.0)
+        df_6211 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6211')) & (df_gl['DEBIT'] > 0)]
         
-        # 2. Mapping pour la logique floue (Libellé cible : Clé dans ton dictionnaire df_contrat)
+        anomalies_detectees = 0
+
+        if tarif_forfait_contrat > 0:
+            total_paye_6211 = df_6211['DEBIT'].sum()
+            if total_paye_6211 > (tarif_forfait_contrat * (1+2%)): # Tolérance pour prise en compte des ajustements éventuels liés à une inflation de 2% (parfois prévu au contrat)
+                r.append(f"   ❌ SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
+                r.append(f"      👉 Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
+                anomalies_detectees += 1
+        
+        # 2. Filtrage des autres honoraires (Compte 622) pour analyse ligne à ligne
+        df_622 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('622')) & (df_gl['DEBIT'] > 0)].copy()
+        
         mapping_audit = {
+            "Vacation horaire": "vacation_horaire",
             "Mise en demeure": "mise_en_demeure",
             "Relance": "relance_simple",
             "Etat daté": "etat_date",
-            "Opposition mutation": "opposition_mutation",
-            "Vacation horaire": "vacation_horaire",
-            "Copie PV": "copie_pv",
-            "Assemblée Générale": "ag_supplementaire",
-            "Injonction de payer": "injonction_payer"
+            "Opposition sur mutation": "opposition_mutation",
+            "Mise en demeure d'un tiers": "mise_en_demeure_tiers",
+            "Injonction de payer": "injonction_payer",
+            "Reprise de comptabilité sur exercices antérieurs (forfait)": "reprise_compta_forfait",
+            "Assemblée générale supplémentaire": "ag_supplementaire",
+            "Copie PV": "copie_pv"
         }
-
-        anomalies_detectees = 0
         
-        if not df_honoraires.empty:
-            for _, row in df_honoraires.iterrows():
+        if not df_622.empty:
+            for _, row in df_622.iterrows():
                 libelle_brut = str(row['LIBELLE'])
                 montant_paye = float(row['DEBIT'])
                 date_val = row['DATE']
                 date_str = date_val.strftime('%d/%m/%Y') if pd.notnull(date_val) else "N/A"
                 
-                trouve = False
-
                 for nom_cible, cle_contrat in mapping_audit.items():
-                    # Comparaison floue entre le libellé de l'écriture et le nom cible
-                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 80:
-                        trouve = True
-                        # Extraction du tarif depuis le dictionnaire df_contrat
+                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 85:
                         tarif_contrat = df_contrat.get(cle_contrat, 0.0)
 
                         if tarif_contrat == 0:
                             r.append(f"   ❌ ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"      👉 Prestation non tarifée ou incluse dans le forfait selon le contrat.")
                             anomalies_detectees += 1
-                        elif montant_paye > (tarif_contrat + 0.10):
+                        elif montant_paye > (tarif_contrat + 0.10):  #Marge d'arrondi
                             r.append(f"   ❌ SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"      👉 Le tarif contractuel est de {tarif_contrat}€ TTC.")
                             anomalies_detectees += 1
-                        break # Sortie de la boucle mapping si on a trouvé un match
+                        break 
             
-            if anomalies_detectees == 0:
-                r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
-        else:
-            r.append("   ℹ️ Aucune écriture trouvée dans les comptes 621/622.")
+        if anomalies_detectees == 0:
+            r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
+            
     else:
         r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")
-
+        
 
 ##############################################################################################################################################################"
 
