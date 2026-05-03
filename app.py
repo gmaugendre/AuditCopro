@@ -671,6 +671,8 @@ with col2:
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(50)
 
+                st.stop()
+
                 # Un appel IA pour lire le contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
@@ -763,7 +765,10 @@ with col2:
                     bank_df.to_excel(writer, index=False)
                 st.download_button("💾 Télécharger Banque en Excel", output_bk.getvalue(), "Banque_convertie.xlsx")
 
-            st.info("Toutes les données ont été supprimées.")
+            with st.expander("Voir les tarifs extraits du contrat"):
+                st.json(df_contrat)
+    
+            # st.info("Toutes les données ont été supprimées.")
     else:
         st.markdown(" ")
         st.markdown(" ")
