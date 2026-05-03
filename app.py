@@ -543,82 +543,81 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-        r.append("\n" + "="*80)
-        r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
-        r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
-        r.append("   L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
+    r.append("\n" + "="*80)
+    r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
+    r.append("👉 Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
+    r.append("   L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
     
-        if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
+        # 1. Traitement spécifique du FORFAIT ANNUEL (Compte 6211)
+        tarif_forfait_contrat = df_contrat.get("forfait_annuel", 0.0)
+        df_6211 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6211')) & (df_gl['DEBIT'] > 0)]
             
-            # 1. Traitement spécifique du FORFAIT ANNUEL (Compte 6211)
-            tarif_forfait_contrat = df_contrat.get("forfait_annuel", 0.0)
-            df_6211 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6211')) & (df_gl['DEBIT'] > 0)]
-            
-            anomalies_detectees = 0
+        anomalies_detectees = 0
     
-            if tarif_forfait_contrat > 0:
-                total_paye_6211 = df_6211['DEBIT'].sum()
-                if total_paye_6211 > (tarif_forfait_contrat * 1.02): # Tolérance de 2% pour l'inflation
-                    r.append(f"   ❌ SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
-                    r.append(f"      👉 Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
-                    anomalies_detectees += 1
+        if tarif_forfait_contrat > 0:
+            total_paye_6211 = df_6211['DEBIT'].sum()
+            if total_paye_6211 > (tarif_forfait_contrat * 1.02): # Tolérance de 2% pour l'inflation
+                r.append(f"   ❌ SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
+                r.append(f"      👉 Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
+                anomalies_detectees += 1
             
-            # 2. Filtrage des autres honoraires (Compte 622) pour analyse ligne à ligne
-            df_622 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('622')) & (df_gl['DEBIT'] > 0)].copy()
+        # 2. Filtrage des autres honoraires (Compte 622) pour analyse ligne à ligne
+        df_622 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('622')) & (df_gl['DEBIT'] > 0)].copy()
             
-            mapping_audit = {
-                "Vacation horaire": "vacation_horaire",
-                "Mise en demeure": "mise_en_demeure",
-                "Relance": "relance_simple",
-                "Etat daté": "etat_date",
-                "Opposition sur mutation": "opposition_mutation",
-                "Mise en demeure d'un tiers": "mise_en_demeure_tiers",
-                "Injonction de payer": "injonction_payer",
-                "Reprise de comptabilité sur exercices antérieurs (forfait)": "reprise_compta_forfait",
-                "Assemblée générale supplémentaire": "ag_supplementaire",
-                "Copie PV": "copie_pv"
-            }
+        mapping_audit = {
+            "Vacation horaire": "vacation_horaire",
+            "Mise en demeure": "mise_en_demeure",
+            "Relance": "relance_simple",
+            "Etat daté": "etat_date",
+            "Opposition sur mutation": "opposition_mutation",
+            "Mise en demeure d'un tiers": "mise_en_demeure_tiers",
+            "Injonction de payer": "injonction_payer",
+            "Reprise de comptabilité sur exercices antérieurs (forfait)": "reprise_compta_forfait",
+            "Assemblée générale supplémentaire": "ag_supplementaire",
+            "Copie PV": "copie_pv"
+        }
             
-            if not df_622.empty:
-                for _, row in df_622.iterrows():
-                    libelle_brut = str(row['LIBELLE'])
-                    montant_paye = float(row['DEBIT'])
-                    date_val = row['DATE']
-                    date_str = date_val.strftime('%d/%m/%Y') if pd.notnull(date_val) else "N/A"
-                    
-                    for nom_cible, cle_contrat in mapping_audit.items():
-                        if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 85:
-                            tarif_contrat = df_contrat.get(cle_contrat, 0.0)
-    
-                            if tarif_contrat == 0:
-                                r.append(f"   ❌ ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
-                                r.append(f"      👉 Prestation non tarifée ou incluse dans le forfait selon le contrat.")
-                                anomalies_detectees += 1
-                            
-                            # Cas spécifique : Vacation horaire (plusieurs heures possibles)
-                            elif cle_contrat == "vacation_horaire":
-                                if montant_paye > (tarif_contrat + 0.10):
-                                    n_heures = montant_paye / tarif_contrat
-                                    r.append(f"   ℹ️ INFO : Vacation détectée ({date_str}) pour {montant_paye}€.")
-                                    r.append(f"      👉 Cela correspond à {n_heures:.2f} heure(s) au tarif contractuel de {tarif_contrat}€/h.")
-                                # On ne compte pas d'anomalie ici car le montant dépend du temps passé
-                            
-                            # Cas général : Frais fixes unitaires
-                            elif montant_paye > (tarif_contrat + 0.10):
-                                r.append(f"   ❌ SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
-                                r.append(f"      👉 Le tarif contractuel est de {tarif_contrat}€ TTC.")
-                                anomalies_detectees += 1
-                            
-                            break 
+        if not df_622.empty:
+            for _, row in df_622.iterrows():
+                libelle_brut = str(row['LIBELLE'])
+                montant_paye = float(row['DEBIT'])
+                date_val = row['DATE']
+                date_str = date_val.strftime('%d/%m/%Y') if pd.notnull(date_val) else "N/A"
                 
-            if anomalies_detectees == 0:
-                r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
-                
-        else:
-            r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
+                for nom_cible, cle_contrat in mapping_audit.items():
+                    if fuzz.partial_ratio(nom_cible.lower(), libelle_brut.lower()) > 85:
+                        tarif_contrat = df_contrat.get(cle_contrat, 0.0)
     
-        r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
-        return "\n".join(r)
+                        if tarif_contrat == 0:
+                            r.append(f"   ❌ ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"      👉 Prestation non tarifée ou incluse dans le forfait selon le contrat.")
+                            anomalies_detectees += 1
+                            
+                        # Cas spécifique : Vacation horaire (plusieurs heures possibles)
+                        elif cle_contrat == "vacation_horaire":
+                            if montant_paye > (tarif_contrat + 0.10):
+                                n_heures = montant_paye / tarif_contrat
+                                r.append(f"   ℹ️ INFO : Vacation détectée ({date_str}) pour {montant_paye}€.")
+                                r.append(f"      👉 Cela correspond à {n_heures:.2f} heure(s) au tarif contractuel de {tarif_contrat}€/h.")
+                            # On ne compte pas d'anomalie ici car le montant dépend du temps passé
+                            
+                        # Cas général : Frais fixes unitaires
+                        elif montant_paye > (tarif_contrat + 0.10):
+                            r.append(f"   ❌ SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"      👉 Le tarif contractuel est de {tarif_contrat}€ TTC.")
+                            anomalies_detectees += 1
+                            
+                        break 
+                
+        if anomalies_detectees == 0:
+            r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
+                
+    else:
+        r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
+    
+    r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
+    return "\n".join(r)
 
 ##############################################################################################################################################################"
 
