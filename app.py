@@ -949,6 +949,8 @@ with col2:
                   des erreurs nécessitant vérification.
                 
                 CIBLE : Copropriétaires et membres du conseil syndical sans formation comptable.
+
+                LONGUEUR: 2 pages
                 
                 STRUCTURE OBLIGATOIRE :
                 1. Introduction : période analysée et état général de la copropriété.
@@ -974,7 +976,7 @@ with col2:
         
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
                     # fpdf2 supporte mieux l'euro, mais on sécurise les apostrophes
-                    texte_final = synthese_texte.replace('’', "'").replace('€', ' Euros')
+                    texte_final = synthese_texte.replace('’', "'").replace('€', ' EUR')
                     
                     # Utilisation de write_html pour interpréter le gras (**) de Gemini
                     # fpdf2 convertit automatiquement le Markdown simple en HTML interne
@@ -984,8 +986,24 @@ with col2:
                     # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
                     # passer par la méthode dédiée aux textes longs :
                     pdf.multi_cell(0, 6, texte_final, markdown=True) 
+
+                    # --- ANNEXES : Résultat brut des contrôles comptables ---
+                    pdf.add_page()
+                    pdf.set_font("helvetica", "B", 16)
+                    pdf.set_text_color(41, 128, 185)
+                    pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.ln(4)
+                    pdf.set_draw_color(41, 128, 185)
+                    pdf.set_line_width(0.8)
+                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                    pdf.ln(6)
+                    
+                    pdf.set_font("courier", size=8)
+                    pdf.set_text_color(0, 0, 0)
+                    texte_annexes = rapport_final.replace('€', ' EUR')
+                    pdf.multi_cell(0, 4.5, texte_annexes)
  
-                    st.session_state["pdf_synthese"] = pdf.output() # fpdf2 renvoie des bytes par défaut
+                    st.session_state["pdf_synthese"] = bytes(pdf.output())
                     st.session_state["synthese_texte"] = synthese_texte
  
                 except Exception as e:
