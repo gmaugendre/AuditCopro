@@ -540,9 +540,6 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("   ⚠️ Données insuffisantes pour l'analyse du fonds de travaux.")
 
-    r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
-    return "\n".join(r)
-
 
 # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
@@ -618,6 +615,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             
     else:
         r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
+
+    r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
+    return "\n".join(r)
 
 ##############################################################################################################################################################"
 
@@ -884,45 +884,53 @@ if releves_files:
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
-    documents_prets = gl_file is not None and contrat_file is not None and releves_files is not None and len(releves_files) == 2 and not fichiers_doublons  #################### REMETTTRE 12 APRES DEBOGAGE
+ 
+    documents_prets = (
+        gl_file is not None and
+        contrat_file is not None and
+        releves_files is not None and
+        len(releves_files) == 2 and   # ← Remettre 12 après débogage
+        not fichiers_doublons
+    )
+ 
     if documents_prets:
         st.markdown(" ")
         st.markdown(" ")
+ 
+        # --- INITIALISATION DU SESSION STATE ---
+        for key in ["pdf_synthese", "pdf_graphique", "synthese_texte", "gl_df", "bank_df", "contrat_df"]:
+            if key not in st.session_state:
+                st.session_state[key] = None
+ 
         if st.button("Générer le rapport d'analyse", type="primary"):
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
                 progress_bar = st.progress(10)
-
-                # --- LECTURE DES DONNEES PAR L'IA ---
-                
-                # Un appel IA pour lire le grand livre
+ 
+                # Lecture Grand Livre
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
                 progress_bar.progress(30)
-                
-                # On fusionne les relevés de banque pdf avant de les convertir en excel
+ 
+                # Fusion et lecture des relevés bancaires
                 merged_bank_path = merge_pdfs(releves_files, "rb")
-                
-                # Un seul appel IA pour tous les relevés bancaires agrégés
-                status.update(label=f"🏦 Lecture des relevés bancaires", expanded=True)
+                status.update(label="🏦 Lecture des relevés bancaires...", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(50)
-
-                # Un appel IA pour lire le contrat
+ 
+                # Lecture contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
                 progress_bar.progress(70)
-
-                # --- AUDIT COMPTABLE: REGLES EN DUR PARCOURUES SUCCESIVEMENT ---
-
+ 
+                # Audit comptable
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
                 rapport_final = generer_rapport_audit(gl_df, bank_df, contrat_df)
                 progress_bar.progress(80)
-    
-                # --- GÉNÉRATION DU RAPPORT DE SYNTHÈSE PAR L'IA ---
-                
-                status.update(label="✍️ Rédaction de la synthèse...")
-                
+ 
+                # Génération synthèse IA
+                status.update(label="✍️ Rédaction de la synthèse...", expanded=True)
+ 
                 instructions_gemini = """
                 Tu es un Auditeur Spécialisé en Copropriété. Ton objectif est de transformer des données comptables brutes en un rapport stratégique pour le Conseil Syndical.
                 ### POSTURE ET TON :
@@ -936,109 +944,120 @@ with col2:
                 4. **Conclusion** : Recommandations concrètes.
                 5. **Annexe Technique** : Copie intégrale des données d'analyse brute fournies.
                 ### CONTRAINTES DE FORMATAGE (STRICTES pour compatibilité PDF) :
-                - **PAS DE TABLEAUX MARKDOWN** : N'utilise jamais de barres verticales | ou de tirets de tableaux. Présente les détails (dates, montants, libellés) sous forme de **listes à puces structurées**.
+                - **PAS DE TABLEAUX MARKDOWN** : N'utilise jamais de barres verticales | ou de tirets de tableaux. Présente les détails sous forme de listes à puces structurées.
                 - **PAS D'ÉMOJIS** : Aucun symbole graphique.
                 - **SYMBOLE MONÉTAIRE** : Remplace systématiquement le symbole '€' par le mot 'Euros'.
-                - **MARKDOWN SIMPLE** : Utilise uniquement le **Gras** pour les points importants et les listes à puces (-) pour le détail.
+                - **MARKDOWN SIMPLE** : Utilise uniquement le Gras pour les points importants et les listes à puces (-) pour le détail.
                 - **CARACTÈRES** : Utilise uniquement des caractères alphanumériques standards (évite les flèches, étoiles ou puces exotiques).
                 """
-    
+ 
                 prompt_complet = f"{instructions_gemini}\n\n--- DONNÉES D'ANALYSE BRUTE ---\n{rapport_final}"
-            
-                # --- GÉNÉRATION DU PDF ---
+ 
+                # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
                 try:
                     response = client.models.generate_content(
                         model=GEMINI_MODEL,
                         contents=prompt_complet
                     )
                     synthese_texte = response.text
-                    st.info("✅ Réponse Gemini reçue. Tentative de création du PDF...")
-                    
-                    # Nettoyage radical (Anti-crash)
-                    import re
-                    # Remplace les caractères risqués
-                    t_clean = synthese_texte.replace('’', "'").replace('€', ' Euros').replace('–', '-')
-                    # Supprime tout ce qui n'est pas supporté par la police standard
+ 
+                    t_clean = synthese_texte.replace('\u2019', "'").replace('€', ' Euros').replace('–', '-')
                     t_clean = t_clean.encode('latin-1', 'replace').decode('latin-1')
-                    # On enlève les résidus de Markdown complexe que fpdf2 n'aime pas parfois
-                    t_clean = re.sub(r'[#*>-]', '', t_clean) 
-                    
-                    # Création du PDF
+                    t_clean = re.sub(r'[#*>-]', '', t_clean)
+ 
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_font("helvetica", "B", 16)
                     pdf.cell(0, 10, "Rapport de Synthese de Copropriete", align='C')
                     pdf.ln(10)
-                        
                     pdf.set_font("helvetica", size=11)
-                    # On désactive markdown=True temporairement pour être SÛR que ça ne vient pas de là
-                    pdf.multi_cell(0, 6, t_clean) 
-                    
-                    # Conversion ultra-sûre en Bytes
-                    try:
-                        pdf_bytes = pdf.output()
-                        if isinstance(pdf_bytes, bytearray) or isinstance(pdf_bytes, bytes):
-                            final_data = bytes(pdf_bytes)
-                        else:
-                            # Pour certaines versions de fpdf2, il faut forcer la sortie brute
-                            final_data = pdf.output(dest='S').encode('latin-1')
-                    except Exception as e_pdf:
-                        st.error(f"Erreur technique lors de la conversion binaire : {e_pdf}")
-                        final_data = None
-                    
-                    # Affichage du bouton SI les données sont prêtes
-                    if final_data:
-                        st.success("Analyse terminée avec succès !")
-                        st.download_button(
-                            label="📥 Télécharger le rapport de synthèse (pdf)",
-                            data=final_data,
-                            file_name="Rapport_Synthese.pdf",
-                            mime="application/pdf"
-                        )
-                    else:
-                        st.warning("Le PDF n'a pas pu être converti en binaire.")
-                    
+                    pdf.multi_cell(0, 6, t_clean)
+ 
+                    pdf_bytes = pdf.output()
+                    st.session_state["pdf_synthese"] = bytes(pdf_bytes)
+                    st.session_state["synthese_texte"] = synthese_texte
+ 
                 except Exception as e:
-                    st.error(f"❌ Erreur critique : {str(e)}")
-                    # ROBUSTESSE ULTIME : Si le PDF échoue, on affiche quand même le texte
-                    st.subheader("Texte de l'analyse (affichage de secours) :")
-                    st.markdown(synthese_texte)            
-            
-            # --- APERÇU DES DONNÉES CONVERTIES ---
-            
+                    st.session_state["pdf_synthese"] = None
+                    st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
+ 
+                progress_bar.progress(90)
+                """
+                # --- GÉNÉRATION DU PDF GRAPHIQUE ---
+                try:
+                    nom_graphique = generer_rapport_graphique(gl_df)
+                    with open(nom_graphique, "rb") as f:
+                        st.session_state["pdf_graphique"] = f.read()
+                    os.remove(nom_graphique)
+                except Exception as e:
+                    st.session_state["pdf_graphique"] = None
+                """
+                # Stockage des DataFrames
+                st.session_state["gl_df"] = gl_df
+                st.session_state["bank_df"] = bank_df
+                st.session_state["contrat_df"] = contrat_df
+ 
+                progress_bar.progress(100)
+                status.update(label="✅ Audit terminé !", state="complete", expanded=False)
+ 
+        # ── AFFICHAGE DES RÉSULTATS ── hors du if st.button(), même niveau que lui
+        if st.session_state.get("pdf_synthese"):
+            st.success("✅ Analyse terminée avec succès !")
+            col_dl1, col_dl2 = st.columns(2)
+            with col_dl1:
+                st.download_button(
+                    label="📥 Télécharger le rapport de synthèse (PDF)",
+                    data=st.session_state["pdf_synthese"],
+                    file_name="Rapport_Synthese.pdf",
+                    mime="application/pdf"
+                )
+            with col_dl2:
+                if st.session_state.get("pdf_graphique"):
+                    st.download_button(
+                        label="📊 Télécharger les annexes graphiques (PDF)",
+                        data=st.session_state["pdf_graphique"],
+                        file_name="Rapport_Graphique_Audit.pdf",
+                        mime="application/pdf"
+                    )
+        elif st.session_state.get("synthese_texte"):
+            st.warning("⚠️ Le PDF n'a pas pu être généré. Affichage du texte brut :")
+            st.markdown(st.session_state["synthese_texte"])
+ 
+        # ── APERÇU DES DONNÉES CONVERTIES ── même niveau que if st.button()
+        if st.session_state.get("gl_df") is not None:
             st.markdown("---")
             st.markdown("### 🛠️ Aperçu des conversions")
-            
+ 
             with st.expander("Voir le Grand livre converti"):
-                st.dataframe(gl_df)
+                st.dataframe(st.session_state["gl_df"])
                 output_gl = io.BytesIO()
                 with pd.ExcelWriter(output_gl, engine='openpyxl') as writer:
-                    gl_df.to_excel(writer, index=False)
+                    st.session_state["gl_df"].to_excel(writer, index=False)
                 st.download_button("💾 Télécharger GL en Excel", output_gl.getvalue(), "GL_converti.xlsx")
-
+ 
             with st.expander("Voir les relevés bancaires cumulés"):
-                st.dataframe(bank_df)
+                st.dataframe(st.session_state["bank_df"])
                 output_bk = io.BytesIO()
                 with pd.ExcelWriter(output_bk, engine='openpyxl') as writer:
-                    bank_df.to_excel(writer, index=False)
+                    st.session_state["bank_df"].to_excel(writer, index=False)
                 st.download_button("💾 Télécharger Banque en Excel", output_bk.getvalue(), "Banque_convertie.xlsx")
-
+ 
             with st.expander("Voir les tarifs extraits du contrat"):
-                st.json(contrat_df)
-                
-        #shutil.rmtree(UPLOAD_DIR)      # Supprime tout le dossier de stockage  ############################" A DECOMMENTER APRES DEBUGGAGE
-        #os.makedirs(UPLOAD_DIR)        # Le recrée vide pour la prochaine utilisation
-        #st.info("Toutes les données ont été supprimées.")
-
+                st.json(st.session_state["contrat_df"])
+ 
+        # shutil.rmtree(UPLOAD_DIR)
+        # os.makedirs(UPLOAD_DIR)
+        # st.info("Toutes les données ont été supprimées.")
+ 
     else:
         st.markdown(" ")
         st.markdown(" ")
         st.info("Charger tous les documents avant de lancer le traitement ...")
-
+ 
 st.markdown("---")
 st.markdown(" ###### Ce projet part d'un simple constat : les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d’analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes.")
+st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes.")
 st.caption(" ###### Protection des données: aucune donnée de votre copropriété n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
 st.caption(" ###### Tous droits réservés.")
