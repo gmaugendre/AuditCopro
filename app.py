@@ -671,13 +671,12 @@ with col2:
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(50)
 
-                st.stop()
-
                 # Un appel IA pour lire le contrat
                 status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
-                progress_bar.progress(70)
-        
+                progress_bar.progress(70)        
+
+                st.stop()
 
                 # AUDIT COMPTABLE
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
