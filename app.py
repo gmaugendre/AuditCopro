@@ -975,8 +975,9 @@ with col2:
                     # passer par la méthode dédiée aux textes longs :
                     pdf.multi_cell(0, 6, texte_final, markdown=True) 
                 
-                    pdf_output = pdf.output() # fpdf2 renvoie des bytes par défaut
-                   
+                    # On s'assure que le résultat est converti en bytes pur
+                    pdf_output = bytes(pdf.output())
+                    
                     st.success("Analyse terminée.")
                     st.download_button(
                         label="📥 Télécharger le rapport de synthèse (pdf)",
