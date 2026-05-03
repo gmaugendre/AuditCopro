@@ -550,7 +550,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append(" L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
     r.append("Tarifs extraits du contrat du syndic :")
     for cle, valeur in df_contrat.items():
-        r.append(f"      • {cle:<35} : {valeur:.2f} EUR")
+        r.append(f"      - {cle:<35} : {valeur:.2f} EUR")
     r.append("")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
