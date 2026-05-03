@@ -608,16 +608,15 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             anomalies_detectees += 1
                             
                         break 
-                
-        if anomalies_detectees == 0:
-            r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
-                
+                        
+            if anomalies_detectees == 0:
+                r.append("   ✅ Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
     else:
         r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
-    
+        
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
 
-return "\n".join(r)
+    return "\n".join(r)
 
 ##############################################################################################################################################################"
 
