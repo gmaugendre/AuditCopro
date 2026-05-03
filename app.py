@@ -541,7 +541,6 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("   ⚠️ Données insuffisantes pour l'analyse du fonds de travaux.")
 
-
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
@@ -617,7 +616,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("   ⚠️ Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
     
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
-    return "\n".join(r)
+
+return "\n".join(r)
 
 ##############################################################################################################################################################"
 
@@ -1057,9 +1057,9 @@ with col2:
             with st.expander("Voir les tarifs extraits du contrat"):
                 st.json(st.session_state["contrat_df"])
  
-        # shutil.rmtree(UPLOAD_DIR)
-        # os.makedirs(UPLOAD_DIR)
-        # st.info("Toutes les données ont été supprimées.")
+        shutil.rmtree(UPLOAD_DIR)
+        os.makedirs(UPLOAD_DIR)
+        st.info("Toutes les données ont été supprimées.")
  
     else:
         st.markdown(" ")
