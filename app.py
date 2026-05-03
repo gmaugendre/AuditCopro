@@ -25,7 +25,7 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-API_KEY = st.secrets["GEMINI_API_KEY3"]
+API_KEY = st.secrets["GEMINI_API_KEY4"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 GEMINI_MODEL="gemini-2.5-flash"
@@ -954,10 +954,12 @@ with col2:
                 
                 CIBLE : Copropriétaires et membres du conseil syndical sans formation comptable.
 
-                LONGUEUR: 3 pages
+                LONGUEUR: 2 à 4 pages
                 
                 STRUCTURE OBLIGATOIRE :
-                1. Introduction : période analysée et état général de la copropriété.
+                1. Préambule: Copier strictement ce texte:
+                "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la coproriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes.
+                Disclaimer: Cette examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
                 2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
                 3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
 
