@@ -464,9 +464,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     DAYS_WINDOW = 30
 
     def effectuer_rapprochement_complet(df_gl_sub, df_bk_sub, label_gl, label_bk, col_gl_val, col_bk_val):
-        """
-        Compare les écritures entre Compta et Banque avec tri chronologique.
-        """
+        # Compare les écritures entre Compta et Banque avec tri chronologique.
+        nonlocal total_anomalies
+        
         if df_gl_sub.empty and df_bk_sub.empty:
             r.append(f"    Aucune écriture à rapprocher pour les {label_gl.lower()}.")
             return
