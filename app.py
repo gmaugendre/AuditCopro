@@ -315,40 +315,68 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("    Données insuffisantes pour l'analyse des impayés.")
 
+    
+
     # --- SECTION D : REJETS BANCAIRES ---
     r.append("\n" + "="*80)
-    r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES")
-    r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé en comptabilité.")
-    r.append("   Un rejet non imputé signifie que le compte d'un copropriétaire est artificiellement créditeur.\n")
+    r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
+    r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
+    r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
     
     DAYS_WINDOW = 30
+
     def fuzzy_check_rejet(libelle):
         if not isinstance(libelle, str): return False
-        keywords = ['rejet', 'impaye', 'sans provision', 'non paye']
-        return any(kw in libelle.lower() for kw in keywords)
+        # Liste de motifs de rejets (on peut inclure des versions avec/sans accents)
+        target_keywords = ['rejet', 'impaye', 'sans provision', 'non paye', 'rejete', 'impayé']
+        
+        libelle_clean = libelle.lower()
+        
+        # On utilise partial_ratio car le mot "rejet" est souvent au milieu d'une longue phrase
+        # exemple: "PRLV SEPA REJET DE M. DUPONT"
+        for kw in target_keywords:
+            if fuzz.partial_ratio(kw, libelle_clean) >= THRESHOLD_FUZZ:
+                return True
+        return False
 
     if 'LIBELLE' in df_bank.columns and 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
+        # 1. Identification des rejets dans le relevé (Lignes au DÉBIT avec libellé "rejet")
         rejets_detectes = df_bank[df_bank['LIBELLE'].apply(fuzzy_check_rejet) & (df_bank['DEBIT'] > 0)]
+        
+        # 2. Identification des écritures de régularisation en compta (Débit du compte 450)
+        # En compta, un rejet d'encaissement se traduit par un nouveau débit au compte du copropriétaire
         df_450 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('450')) & (df_gl['DEBIT'] > 0)]
+        
         nb_alertes_rejets = 0
+        
         for _, rej in rejets_detectes.iterrows():
-            if pd.notnull(rej['DATE']):
+            date_rej = rej['DATE']
+            montant_rej = rej['DEBIT']
+            
+            if pd.notnull(date_rej):
+                # On cherche en compta un montant identique dans les 30 jours suivant le rejet bancaire
                 match = df_450[
-                    (abs(df_450['DEBIT'] - rej['DEBIT']) < 0.05) & 
-                    (df_450['DATE'] >= rej['DATE']) & 
-                    (df_450['DATE'] <= rej['DATE'] + timedelta(days=DAYS_WINDOW))
+                    (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
+                    (df_450['DATE'] >= date_rej) & 
+                    (df_450['DATE'] <= date_rej + timedelta(days=DAYS_WINDOW))
                 ]
             else:
-                match = df_450[abs(df_450['DEBIT'] - rej['DEBIT']) < 0.05]
+                match = df_450[abs(df_450['DEBIT'] - montant_rej) < 0.05]
+                
             if match.empty:
-                d_rej = rej['DATE'].strftime('%d/%m/%Y') if pd.notnull(rej['DATE']) else "N/A"
-                r.append(f"    REJET NON RÉPERCUTÉ : {d_rej} | {rej['DEBIT']:.2f}€ | {rej['LIBELLE']}")
+                d_rej_str = date_rej.strftime('%d/%m/%Y') if pd.notnull(date_rej) else "N/A"
+                r.append(f"    REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
                 nb_alertes_rejets += 1
-                total_anomalies += rej['DEBIT']
-        if nb_alertes_rejets == 0:
-            r.append("    Tous les rejets bancaires ont été imputés.")
+                # total_anomalies += montant_rej (double comptage avec le rapprochement bancaire complet sinon)
+                
+        if nb_alertes_rejets == 0 and not rejets_detectes.empty:
+            r.append("    Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
+        elif rejets_detectes.empty:
+            r.append("    Aucun rejet bancaire détecté sur la période.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des rejets bancaires.")
+        r.append("    Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
+
+
 
     # --- SECTION E : COMPTES D'ATTENTE (471 & 472) ---
     r.append("\n" + "="*80)
@@ -504,6 +532,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             for i in sorted(absent_banque_idx, key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1]) else pd.Timestamp.min):
                 d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                 r.append(f"      - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
+                total_anomalies += gl_v[i, 0] # Montant en compta qui n'existe pas en banque
 
         # --- C. Manquants en Compta (Triés par date de banque) ---
         absent_compta_idx = [j for j in range(m) if j not in bk_matched_idx]
@@ -513,6 +542,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             for j in sorted(absent_compta_idx, key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1]) else pd.Timestamp.min):
                 d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
                 r.append(f"      - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
+                total_anomalies += bk_v[j, 0] # Argent sorti/entré en banque sans écriture
         
         if not alertes_dates and not absent_banque_idx and not absent_compta_idx:
             r.append(f"    Rapprochement parfait pour les {label_gl.lower()}.")
@@ -578,6 +608,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("    Données insuffisantes pour l'analyse des fournisseurs.")
 
+    
     # --- SECTION I : CONTRÔLE DU FONDS DE TRAVAUX (LOI ALUR) ---
     r.append("\n" + "="*80)
     r.append("[SECTION I] CONTRÔLE DU FONDS DE TRAVAUX (COMPTES 105 & 502)")
