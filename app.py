@@ -213,12 +213,12 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
 
 def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r = [] 
-    date_ref_min = df_gl['DATE'].min() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
-    date_ref_max = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
+    date_min = df_gl['DATE'].min() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
+    date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     
     r.append("="*80)
     r.append(f"RAPPORT D'AUDIT COMPTABLE - GÉNÉRÉ LE {datetime.now().strftime('%d/%m/%Y')}")
-    r.append(f"Période analysée du {date_ref_min.strftime('%d/%m/%Y')} au {date_ref_max.strftime('%d/%m/%Y')}")
+    r.append(f"Période analysée du {date_min.strftime('%d/%m/%Y')} au {date_ref.strftime('%d/%m/%Y')}")
     r.append("="*80 + "\n")
 
     # --- BUDGET ET COMPTEUR D'ANOMALIES ---
