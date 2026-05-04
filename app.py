@@ -133,7 +133,18 @@ def extract_releve_data(pdf_path):
             ],
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
-        df = pd.DataFrame(json.loads(response.text))
+
+        # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
+        json_propre = repair_json(response.text)
+        data = json.loads(json_propre)
+        if isinstance(data, list):
+            df = pd.DataFrame(data)
+        elif isinstance(data, dict):
+            # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
+            df = pd.DataFrame([data])
+        else:
+            raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
+
         if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
@@ -413,103 +424,127 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("    Données insuffisantes pour l'analyse des tiers.")
 
+
+    
     # --- SECTION G : RAPPROCHEMENT BANCAIRE COMPLET ---
     r.append("\n" + "="*80)
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
-    r.append(" Compare ligne à ligne la banque et la comptabilité. Détecte les flux financiers sans")
-    r.append("   justification comptable et les délais anormaux de traitement.\n")
+    r.append(" Compare ligne à ligne la banque et la comptabilité (Compte 512).")
+    r.append(" Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
+    r.append("-" * 80 + "\n")
 
-    def rapprochement_cote(df_gl_sub, df_bk_sub, label_gl, label_bk, col_gl, col_bk):
-        if not df_gl_sub.empty and not df_bk_sub.empty:
-            n, m = len(df_gl_sub), len(df_bk_sub)
-            cost_matrix = np.zeros((n, m))
-            gl_v = df_gl_sub[[col_gl, 'DATE', 'LIBELLE']].values
-            bk_v = df_bk_sub[[col_bk, 'DATE', 'LIBELLE']].values
+    DAYS_WINDOW = 30
 
-            for i in range(n):
-                for j in range(m):
-                    diff_m = abs(gl_v[i, 0] - bk_v[j, 0])
-                    diff_j = abs((gl_v[i, 1] - bk_v[j, 1]).days) if pd.notnull(gl_v[i,1]) and pd.notnull(bk_v[j,1]) else 999
-                    cost_matrix[i, j] = 1_000_000 if diff_m > 0.01 else diff_j
+    def effectuer_rapprochement_complet(df_gl_sub, df_bk_sub, label_gl, label_bk, col_gl_val, col_bk_val):
+        """
+        Compare les écritures entre Compta et Banque avec tri chronologique.
+        """
+        if df_gl_sub.empty and df_bk_sub.empty:
+            r.append(f"    Aucune écriture à rapprocher pour les {label_gl.lower()}.")
+            return
+        
+        if df_gl_sub.empty or df_bk_sub.empty:
+            if not df_gl_sub.empty:
+                r.append(f"    TOUTES les écritures de {label_gl} sont absentes en banque.")
+            if not df_bk_sub.empty:
+                r.append(f"    TOUTES les écritures de {label_bk} sont absentes en comptabilité.")
+            return
 
-            row_ind, col_ind = linear_sum_assignment(cost_matrix)
-            
-            gl_m_set = set()
-            bk_m_set = set()
-            ecarts_significatifs = []
+        n, m = len(df_gl_sub), len(df_bk_sub)
+        cost_matrix = np.full((n, m), 1_000_000.0)
+        
+        # On extrait les valeurs en numpy pour la performance
+        gl_v = df_gl_sub[[col_gl_val, 'DATE', 'LIBELLE']].values
+        bk_v = df_bk_sub[[col_bk_val, 'DATE', 'LIBELLE']].values
 
-            for i, j in zip(row_ind, col_ind):
-                if cost_matrix[i, j] < 1_000_000:
-                    gl_m_set.add(i)
-                    bk_m_set.add(j)
-                    delai = (gl_v[i, 1] - bk_v[j, 1]).days
-                    if abs(delai) > 30:
-                        ecarts_significatifs.append({
-                            'date_gl': gl_v[i, 1],
-                            'date_bk': bk_v[j, 1],
-                            'montant': gl_v[i, 0],
-                            'libelle': gl_v[i, 2],
-                            'delai': delai
-                        })
-
+        # 1. Matrice de coût (différence de jours si montants égaux)
+        for i in range(n):
             for j in range(m):
-                if j not in bk_m_set:
-                    bk_val, bk_date = bk_v[j, 0], bk_v[j, 1]
-                    if pd.notnull(bk_date):
-                        cand_idx = [i for i in range(n) if i not in gl_m_set and pd.notnull(gl_v[i, 1]) and pd.to_datetime(gl_v[i, 1]).date() == pd.to_datetime(bk_date).date()]
-                        if cand_idx and abs(df_gl_sub.iloc[cand_idx][col_gl].sum() - bk_val) < 0.01:
-                            gl_m_set.update(cand_idx)
-                            bk_m_set.add(j)
+                if abs(gl_v[i, 0] - bk_v[j, 0]) < 0.01:
+                    if pd.notnull(gl_v[i, 1]) and pd.notnull(bk_v[j, 1]):
+                        cost_matrix[i, j] = abs((gl_v[i, 1] - bk_v[j, 1]).days)
+                    else:
+                        cost_matrix[i, j] = 0
 
-            for i in range(n):
-                if i not in gl_m_set:
-                    gl_val, gl_date = gl_v[i, 0], gl_v[i, 1]
-                    if pd.notnull(gl_date):
-                        cand_idx = [j for j in range(m) if j not in bk_m_set and pd.notnull(bk_v[j, 1]) and pd.to_datetime(bk_v[j, 1]).date() == pd.to_datetime(gl_date).date()]
-                        if cand_idx and abs(df_bk_sub.iloc[cand_idx][col_bk].sum() - gl_val) < 0.01:
-                            bk_m_set.update(cand_idx)
-                            gl_m_set.add(i)
+        # 2. Algorithme d'affectation
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        
+        gl_matched_idx = set()
+        bk_matched_idx = set()
+        alertes_dates = []
 
-            if ecarts_significatifs:
-                r.append(f"    ALERTES DÉLAIS (> 30 JOURS) :")
-                for e in sorted(ecarts_significatifs, key=lambda x: x['date_gl']):
-                    signe = "AVANCE" if e['delai'] > 0 else "RETARD"
-                    r.append(f"      - {e['montant']:>8.2f}€ | {e['libelle'][:20]:<20} | {abs(e['delai'])}j de {signe} (C: {e['date_gl'].strftime('%d/%m')} / B: {e['date_bk'].strftime('%d/%m')})")
+        for i, j in zip(row_ind, col_ind):
+            if cost_matrix[i, j] < 1_000_000:
+                gl_matched_idx.add(i)
+                bk_matched_idx.add(j)
+                
+                if cost_matrix[i, j] > DAYS_WINDOW:
+                    alertes_dates.append({
+                        'date_gl': gl_v[i, 1],
+                        'date_bk': bk_v[j, 1],
+                        'montant': gl_v[i, 0],
+                        'libelle': gl_v[i, 2],
+                        'jours': int(cost_matrix[i, j])
+                    })
 
-            abs_bk = df_gl_sub.iloc[[i for i in range(n) if i not in gl_m_set]].sort_values('DATE')
-            if not abs_bk.empty:
-                r.append(f"    {label_bk.upper()} ABSENT (LIGNE COMPTABILITE NON TROUVEE EN BANQUE) :")
-                for _, row in abs_bk.iterrows():
-                    d = row['DATE'].strftime('%d/%m/%Y') if pd.notnull(row['DATE']) else "N/A"
-                    r.append(f"      - {d} | {row[col_gl]:>8.2f}€ | {row['LIBELLE']}")
+        # 3. AFFICHAGE TRIÉ PAR DATE CROISSANTE
+        
+        # --- A. Alertes délais (Triés par date de compta) ---
+        if alertes_dates:
+            r.append(f"    ÉCARTS DE DATES ANORMAUX (> {DAYS_WINDOW} jours) :")
+            # Tri chronologique sur la date comptable
+            for a in sorted(alertes_dates, key=lambda x: x['date_gl'] if pd.notnull(x['date_gl']) else pd.Timestamp.min):
+                r.append(f"      - {a['date_gl'].strftime('%d/%m/%Y')} | {a['montant']:>8.2f}€ | {a['jours']}j d'écart (Banque: {a['date_bk'].strftime('%d/%m')}) | {a['libelle'][:30]}")
 
-            abs_gl = df_bk_sub.iloc[[j for j in range(m) if j not in bk_m_set]].sort_values('DATE')
-            if not abs_gl.empty:
-                r.append(f"    {label_gl.upper()} ABSENT (LIGNE BANQUE NON TROUVEE EN COMPTABILITE) :")
-                for _, row in abs_gl.iterrows():
-                    d = row['DATE'].strftime('%d/%m/%Y') if pd.notnull(row['DATE']) else "N/A"
-                    r.append(f"      - {d} | {row[col_bk]:>8.2f}€ | {row['LIBELLE']}")
-        else:
-            r.append(f"    Données insuffisantes pour les {label_gl.lower()}.")
+        # --- B. Manquants en Banque (Triés par date de compta) ---
+        absent_banque_idx = [i for i in range(n) if i not in gl_matched_idx]
+        if absent_banque_idx:
+            r.append(f"    PRESENT EN COMPTABILITÉ SANS CORRESPONDANCE BANCAIRE :")
+            # Tri par la date présente dans gl_v à l'index i
+            for i in sorted(absent_banque_idx, key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1]) else pd.Timestamp.min):
+                d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
+                r.append(f"      - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
 
-    if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'CREDIT' in df_gl.columns and 'DATE' in df_gl.columns and 'LIBELLE' in df_gl.columns:
-        df_gl_dt = df_gl.copy()
-        df_gl_dt['DATE'] = pd.to_datetime(df_gl_dt['DATE'], errors='coerce')
-        df_bk_dt = df_bank.copy()
-        if 'DATE' in df_bk_dt.columns:
-            df_bk_dt['DATE'] = pd.to_datetime(df_bk_dt['DATE'], errors='coerce')
+        # --- C. Manquants en Compta (Triés par date de banque) ---
+        absent_compta_idx = [j for j in range(m) if j not in bk_matched_idx]
+        if absent_compta_idx:
+            r.append(f"    PRESENT EN BANQUE SANS JUSTIFICATION COMPTABLE :")
+            # Tri par la date présente dans bk_v à l'index j
+            for j in sorted(absent_compta_idx, key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1]) else pd.Timestamp.min):
+                d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
+                r.append(f"      - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
+        
+        if not alertes_dates and not absent_banque_idx and not absent_compta_idx:
+            r.append(f"    Rapprochement parfait pour les {label_gl.lower()}.")
 
-        r.append("\n--- ANALYSE DES DÉCAISSEMENTS ---")
-        gl_s = df_gl_dt[df_gl_dt['NUMERO_COMPTE'].astype(str).str.startswith('512') & (df_gl_dt['CREDIT'] > 0)].copy()
-        bk_s = df_bk_dt[df_bk_dt['DEBIT'] > 0].copy() if 'DEBIT' in df_bk_dt.columns else pd.DataFrame()
-        rapprochement_cote(gl_s, bk_s, "Compta (512)", "Banque", "CREDIT", "DEBIT")
+    # --- PRÉPARATION DES DONNÉES ET APPELS ---
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns and not df_bank.empty:
+        # Copie et nettoyage pour éviter de modifier les DataFrames originaux
+        gl_clean = df_gl.copy()
+        gl_clean['DATE'] = pd.to_datetime(gl_clean['DATE'], errors='coerce')
+        
+        bk_clean = df_bank.copy()
+        bk_clean['DATE'] = pd.to_datetime(bk_clean['DATE'], errors='coerce')
 
-        r.append("\n--- ANALYSE DES ENCAISSEMENTS ---")
-        gl_e = df_gl_dt[df_gl_dt['NUMERO_COMPTE'].astype(str).str.startswith('512') & (df_gl_dt['DEBIT'] > 0)].copy()
-        bk_e = df_bk_dt[df_bk_dt['CREDIT'] > 0].copy() if 'CREDIT' in df_bk_dt.columns else pd.DataFrame()
-        rapprochement_cote(gl_e, bk_e, "Compta (512)", "Banque", "DEBIT", "CREDIT")
+        # Filtrage du compte 512
+        mask_512 = gl_clean['NUMERO_COMPTE'].astype(str).str.startswith('512')
+        df_512 = gl_clean[mask_512].copy()
+
+        # 1. ANALYSE DES ENCAISSEMENTS (Débit 512 vs. Crédit Banque)
+        r.append("--- ENCAISSEMENTS (Paiements copropriétaires, etc.) ---")
+        gl_e = df_512[df_512['DEBIT'] > 0.001].copy()
+        bk_e = bk_clean[bk_clean['CREDIT'] > 0.001].copy()
+        effectuer_rapprochement_complet(gl_e, bk_e, "Encaissements", "Banque", "DEBIT", "CREDIT")
+
+        # 2. ANALYSE DES DÉCAISSEMENTS (Crédit 512 vs Débit Banque)
+        r.append("\n--- DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---")
+        gl_d = df_512[df_512['CREDIT'] > 0.001].copy()
+        bk_d = bk_clean[bk_clean['DEBIT'] > 0.001].copy()
+        effectuer_rapprochement_complet(gl_d, bk_d, "Décaissements", "Banque", "CREDIT", "DEBIT")
     else:
-        r.append("    Données insuffisantes pour le rapprochement bancaire.")
+        r.append("    Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
+
+
 
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
     r.append("\n" + "="*80)
