@@ -997,7 +997,7 @@ with col2:
                 LONGUEUR: 2 à 4 pages
                 
                 STRUCTURE OBLIGATOIRE :
-                1.Mets le titre centré et en gras: "RAPPORT DE SYNTHÈSE D'ANALYSE AUTOMATISEE DES COMPTES DE COPROPRIÉTÉ"
+                1.Mets le titre centré et en gras tout en haut: "RAPPORT DE SYNTHÈSE D'ANALYSE AUTOMATISEE DES COMPTES DE COPROPRIÉTÉ". N'ajoute aucun autre titre.
                 Puis indique la date du rapport et la période analysée.
                 2. Préambule: Copier strictement ce texte:
                 "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la coproriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes.
