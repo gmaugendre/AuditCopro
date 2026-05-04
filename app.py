@@ -84,7 +84,18 @@ def convert_pdf_to_excel(pdf_path):
             ],
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
-        df = pd.DataFrame(json.loads(response.text))
+
+        # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
+        json_propre = repair(response.text)
+        data = json.loads(json_propre)
+        if isinstance(data, list):
+            df = pd.DataFrame(data)
+        elif isinstance(data, dict):
+            # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
+            df = pd.DataFrame([data])
+        else:
+            raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
+
         if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
         if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
         if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
