@@ -4,7 +4,7 @@ import shutil
 import pandas as pd
 import io
 import json
-from json_repair import repair
+from json-repair import repair
 import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
