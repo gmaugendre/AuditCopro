@@ -25,7 +25,7 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-API_KEY = st.secrets["GEMINI_API_KEY4"]
+API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 GEMINI_MODEL="gemini-2.5-flash"
@@ -220,6 +220,14 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append(f"Période analysée jusqu'au : {date_ref.strftime('%d/%m/%Y')}")
     r.append("="*80 + "\n")
 
+    # --- BUDGET ET COMPTEUR D'ANOMALIES ---
+    total_anomalies = 0.0
+    # Budget = somme des appels de fonds sur opérations courantes (crédits des comptes 701xxx)
+    budget = 0.0
+    if 'NUMERO_COMPTE' in df_gl.columns and 'CREDIT' in df_gl.columns:
+        df_701 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('701')]
+        budget = df_701['CREDIT'].sum()
+    
     # --- SECTION A : TROP-PAYÉS ---
     r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
     r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois")
@@ -233,6 +241,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             if not trop_payes.empty:
                 for _, row in trop_payes.iterrows():
                     r.append(f"    {row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
+                    total_anomalies += abs(row['SOLDE'])
             else:
                 r.append("    Aucun trop-payé détecté.")
         else:
@@ -250,6 +259,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
         if not doublons.empty:
             r.append(f"    {len(doublons)//2} alertes de doublons potentiels identifiées.")
+            total_anomalies += doublons['DEBIT'].sum() / 2
         else:
             r.append("    Aucun doublon détecté.")
     else:
@@ -275,6 +285,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         if alertes_impayes:
             for a in alertes_impayes[:10]:
                 r.append(f"    {a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
+                total_anomalies += a['CREDIT']
         else:
             r.append("    Aucune facture ancienne en attente.")
     else:
@@ -309,6 +320,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 d_rej = rej['DATE'].strftime('%d/%m/%Y') if pd.notnull(rej['DATE']) else "N/A"
                 r.append(f"    REJET NON RÉPERCUTÉ : {d_rej} | {rej['DEBIT']:.2f}€ | {rej['LIBELLE']}")
                 nb_alertes_rejets += 1
+                total_anomalies += rej['DEBIT']
         if nb_alertes_rejets == 0:
             r.append("    Tous les rejets bancaires ont été imputés.")
     else:
@@ -327,6 +339,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 if abs(solde) > 5.00:
                     type_solde = "CRÉDITEUR" if solde > 0 else "DÉBITEUR"
                     r.append(f"    COMPTE {racine} : Solde significatif de {abs(solde):.2f}€ ({type_solde})")
+                    total_anomalies += abs(solde)
                     if solde > 0:
                         r.append("       Solde Créditeur élevé : La copropriété détient une dette (sommes non affectées).")
                     else:
@@ -536,6 +549,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         if ecart_placement > 1.00:
             r.append(f"    ANOMALIE : {ecart_placement:.2f}€ n'ont pas été virés sur le compte d'épargne !")
             r.append(f"       Le syndic utilise cet argent pour financer le fonctionnement courant.")
+            total_anomalies += ecart_placement
         elif ecart_placement < -100.00:
             r.append(f"    Sur-placement : {abs(ecart_placement):.2f}€ de plus que prévu sur le Livret.")
         else:
@@ -554,6 +568,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
+        
         # 1. Traitement spécifique du FORFAIT ANNUEL (Compte 6211)
         tarif_forfait_contrat = df_contrat.get("forfait_annuel", 0.0)
         df_6211 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6211')) & (df_gl['DEBIT'] > 0)]
@@ -566,6 +581,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 r.append(f"    SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
                 r.append(f"       Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
                 anomalies_detectees += 1
+                total_anomalies += max(0, total_paye_6211 - tarif_forfait_contrat)
             
         # 2. Filtrage des autres honoraires (Compte 622) pour analyse ligne à ligne
         df_622 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('622')) & (df_gl['DEBIT'] > 0)].copy()
@@ -598,6 +614,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             r.append(f"    ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"       Prestation non tarifée ou incluse dans le forfait selon le contrat.")
                             anomalies_detectees += 1
+                            total_anomalies += montant_paye
                             
                         # Cas spécifique : Vacation horaire (plusieurs heures possibles)
                         elif cle_contrat == "vacation_horaire":
@@ -612,6 +629,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             r.append(f"    SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
                             r.append(f"       Le tarif contractuel est de {tarif_contrat}€ TTC.")
                             anomalies_detectees += 1
+                            total_anomalies += montant_paye
                             
                         break 
                         
@@ -619,7 +637,28 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 r.append("    Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
     else:
         r.append("    Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
-        
+
+    
+    # --- SYNTHESE CHIFFREE DES ANOMALIES EN PROPRORTION DU BUDGET ---
+    r.append("\n" + "="*80)
+    r.append("[SYNTHÈSE CHIFFRÉE] RATIO D'ANOMALIES / BUDGET")
+    r.append("="*80)
+    budget=200000################################################################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if budget > 0:
+        ratio = (total_anomalies / budget) * 100
+        r.append(f"    Budget (appels de fonds 701xxx) : {budget:>12.2f} EUR")
+        r.append(f"    Total des anomalies détectées   : {total_anomalies:>12.2f} EUR")
+        r.append(f"    Ratio anomalies / budget        : {ratio:>11.2f} %")
+        if ratio < 1:
+            r.append("    Appréciation : Niveau d'anomalies faible (< 1% du budget).")
+        elif ratio < 3:
+            r.append("    Appréciation : Niveau d'anomalies modéré (1% à 3% du budget). Vérifications recommandées.")
+        else:
+            r.append("    Appréciation : Niveau d'anomalies élevé (> 3% du budget). Contrôle approfondi nécessaire.")
+    else:
+        r.append("    Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
+        r.append(f"    Total des anomalies détectées : {total_anomalies:.2f} EUR")
+    
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
 
     return "\n".join(r)
@@ -962,6 +1001,7 @@ with col2:
                 2. Préambule: Copier strictement ce texte:
                 "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la coproriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes.
                 Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
+                Puis fais une phrase indiquant le Total des anomalies détectées et le Ratio anomalies / budget.
                 3. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
                 4. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
 
@@ -978,6 +1018,7 @@ with col2:
   
                     pdf = FPDF()
                     pdf.add_page()
+                    pdf.set_margins(left=25, top=15, right=15)
                     pdf.set_auto_page_break(auto=True, margin=15)
                     # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
                     pdf.set_font("helvetica", "B", 16)
@@ -992,7 +1033,9 @@ with col2:
                         .replace('…', '...').replace('•', '-')
                         .replace('€', ' EUR').replace('²', '2')
                         .replace('\u00a0', ' ')  # espace insécable
-                    )                    
+                        .replace('—', '-')
+                    )
+                    texte_final = re.sub(r'(?m)^\s*\*\s+', '  – ', texte_final)
                     # Utilisation de write_html pour interpréter le gras (**) de Gemini
                     # fpdf2 convertit automatiquement le Markdown simple en HTML interne
                     pdf.set_font("helvetica", size=11)
