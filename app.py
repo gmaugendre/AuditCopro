@@ -1035,7 +1035,7 @@ with col2:
                         .replace('\u00a0', ' ')  # espace insécable
                         .replace('—', '-')
                     )
-                    texte_final = re.sub(r'(?m)^\s*\*\s+', '  – ', texte_final)
+                    texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
                     # Utilisation de write_html pour interpréter le gras (**) de Gemini
                     # fpdf2 convertit automatiquement le Markdown simple en HTML interne
                     pdf.set_font("helvetica", size=11)
