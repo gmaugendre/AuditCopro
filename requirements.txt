@@ -9,3 +9,4 @@ scipy
 reportlab
 pypdf
 matplotlib
+json-repair
