@@ -365,16 +365,16 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 
             if match.empty:
                 d_rej_str = date_rej.strftime('%d/%m/%Y') if pd.notnull(date_rej) else "N/A"
-                r.append(f"    REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
+                r.append(f" REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
                 nb_alertes_rejets += 1
                 # total_anomalies += montant_rej (double comptage avec le rapprochement bancaire complet sinon)
                 
         if nb_alertes_rejets == 0 and not rejets_detectes.empty:
-            r.append("    Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
+            r.append(" Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
         elif rejets_detectes.empty:
-            r.append("    Aucun rejet bancaire détecté sur la période.")
+            r.append(" Aucun rejet bancaire détecté sur la période.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
+        r.append(" Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
 
 
 
