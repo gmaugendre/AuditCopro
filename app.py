@@ -644,7 +644,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*80)
     r.append("[SYNTHÈSE CHIFFRÉE] RATIO D'ANOMALIES / BUDGET")
     r.append("="*80)
-    budget=200000 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     if budget > 0:
         ratio = (total_anomalies / budget) * 100
         r.append(f"    Budget (appels de fonds 701xxx) : {budget:>12.2f} EUR")
