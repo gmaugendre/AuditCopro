@@ -466,14 +466,14 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
             abs_bk = df_gl_sub.iloc[[i for i in range(n) if i not in gl_m_set]].sort_values('DATE')
             if not abs_bk.empty:
-                r.append(f"    {label_bk.upper()} ABSENT (Ligne Compta non trouvée en Banque) :")
+                r.append(f"    {label_bk.upper()} ABSENT (LIGNE COMPTABILITE NON TROUVEE EN BANQUE) :")
                 for _, row in abs_bk.iterrows():
                     d = row['DATE'].strftime('%d/%m/%Y') if pd.notnull(row['DATE']) else "N/A"
                     r.append(f"      - {d} | {row[col_gl]:>8.2f}€ | {row['LIBELLE']}")
 
             abs_gl = df_bk_sub.iloc[[j for j in range(m) if j not in bk_m_set]].sort_values('DATE')
             if not abs_gl.empty:
-                r.append(f"    {label_gl.upper()} ABSENT (Ligne Banque non trouvée en Compta) :")
+                r.append(f"    {label_gl.upper()} ABSENT (LIGNE BANQUE NON TROUVEE EN COMPTABILITE) :")
                 for _, row in abs_gl.iterrows():
                     d = row['DATE'].strftime('%d/%m/%Y') if pd.notnull(row['DATE']) else "N/A"
                     r.append(f"      - {d} | {row[col_bk]:>8.2f}€ | {row['LIBELLE']}")
@@ -934,7 +934,7 @@ with col2:
         gl_file is not None and
         contrat_file is not None and
         releves_files is not None and
-        len(releves_files) == 2 and   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Remettre 12 après débogage
+        len(releves_files) == 1 and   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Remettre 12 après débogage
         not fichiers_doublons
     )
  
@@ -959,7 +959,7 @@ with col2:
                 if gl_df.empty:
                     st.error("❌ Le Grand livre n'a pas pu être extrait. Relancez le traitement.")
                     st.stop()
-                
+
                 progress_bar.progress(40)
  
                 # Fusion et lecture des relevés bancaires
