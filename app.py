@@ -955,6 +955,11 @@ with col2:
                 status.update(label="📄 Lecture du Grand livre...", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
+
+                if gl_df.empty:
+                    st.error("❌ Le Grand livre n'a pas pu être extrait. Relancez le traitement.")
+                    st.stop()
+                
                 progress_bar.progress(40)
  
                 # Fusion et lecture des relevés bancaires
