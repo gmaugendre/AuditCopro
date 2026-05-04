@@ -4,7 +4,7 @@ import shutil
 import pandas as pd
 import io
 import json
-from json_repair import repair
+from json_repair import repair_json
 import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -87,7 +87,7 @@ def convert_pdf_to_excel(pdf_path):
         )
 
         # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
-        json_propre = repair(response.text)
+        json_propre = repair_json(response.text)
         data = json.loads(json_propre)
         if isinstance(data, list):
             df = pd.DataFrame(data)
