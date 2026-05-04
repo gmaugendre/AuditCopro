@@ -322,9 +322,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
     r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
     r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
-    
-    DAYS_WINDOW = 30
 
+    DAYS_WINDOW = 30
+    
     def fuzzy_check_rejet(libelle):
         if not isinstance(libelle, str): return False
         # Liste de motifs de rejets (on peut inclure des versions avec/sans accents)
@@ -464,28 +464,26 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     DAYS_WINDOW = 30
 
     def effectuer_rapprochement_complet(df_gl_sub, df_bk_sub, label_gl, label_bk, col_gl_val, col_bk_val):
-        # Compare les écritures entre Compta et Banque avec tri chronologique.
         nonlocal total_anomalies
-        
+    
         if df_gl_sub.empty and df_bk_sub.empty:
             r.append(f"    Aucune écriture à rapprocher pour les {label_gl.lower()}.")
             return
-        
         if df_gl_sub.empty or df_bk_sub.empty:
             if not df_gl_sub.empty:
                 r.append(f"    TOUTES les écritures de {label_gl} sont absentes en banque.")
             if not df_bk_sub.empty:
                 r.append(f"    TOUTES les écritures de {label_bk} sont absentes en comptabilité.")
             return
-
-        n, m = len(df_gl_sub), len(df_bk_sub)
+    
+        gl_v = df_gl_sub[[col_gl_val, 'DATE', 'LIBELLE']].reset_index(drop=True).values
+        bk_v = df_bk_sub[[col_bk_val, 'DATE', 'LIBELLE']].reset_index(drop=True).values
+        n, m = len(gl_v), len(bk_v)
+    
+        # ------------------------------------------------------------------ #
+        # PHASE 1 — Matching 1-to-1 classique (Hongrois)                     #
+        # ------------------------------------------------------------------ #
         cost_matrix = np.full((n, m), 1_000_000.0)
-        
-        # On extrait les valeurs en numpy pour la performance
-        gl_v = df_gl_sub[[col_gl_val, 'DATE', 'LIBELLE']].values
-        bk_v = df_bk_sub[[col_bk_val, 'DATE', 'LIBELLE']].values
-
-        # 1. Matrice de coût (différence de jours si montants égaux)
         for i in range(n):
             for j in range(m):
                 if abs(gl_v[i, 0] - bk_v[j, 0]) < 0.01:
@@ -493,59 +491,113 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                         cost_matrix[i, j] = abs((gl_v[i, 1] - bk_v[j, 1]).days)
                     else:
                         cost_matrix[i, j] = 0
-
-        # 2. Algorithme d'affectation
+    
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        
+    
         gl_matched_idx = set()
         bk_matched_idx = set()
-        alertes_dates = []
-
+        alertes_dates  = []
+    
         for i, j in zip(row_ind, col_ind):
             if cost_matrix[i, j] < 1_000_000:
                 gl_matched_idx.add(i)
                 bk_matched_idx.add(j)
-                
                 if cost_matrix[i, j] > DAYS_WINDOW:
                     alertes_dates.append({
-                        'date_gl': gl_v[i, 1],
-                        'date_bk': bk_v[j, 1],
-                        'montant': gl_v[i, 0],
-                        'libelle': gl_v[i, 2],
-                        'jours': int(cost_matrix[i, j])
+                        'date_gl': gl_v[i, 1], 'date_bk': bk_v[j, 1],
+                        'montant': gl_v[i, 0], 'libelle': gl_v[i, 2],
+                        'jours':   int(cost_matrix[i, j]),
                     })
-
-        # 3. AFFICHAGE TRIÉ PAR DATE CROISSANTE
-        
-        # --- A. Alertes délais (Triés par date de compta) ---
+    
+        # Restes après matching 1-to-1
+        restes_gl = [i for i in range(n) if i not in gl_matched_idx]
+        restes_bk = [j for j in range(m) if j not in bk_matched_idx]
+    
+        # ------------------------------------------------------------------ #
+        # PHASE 2 — Détection des groupements parmi les restes uniquement    #
+        # Cherche : N lignes GL (restes) dont la somme = 1 ligne Banque      #
+        # ------------------------------------------------------------------ #
+        groupes_detectes = []
+    
+        for j in restes_bk[:]:           # copie car on modifie restes_bk
+            bk_montant = bk_v[j, 0]
+            bk_date    = bk_v[j, 1]
+    
+            # Candidats GL : restes dans la fenêtre de dates
+            candidats = [
+                i for i in restes_gl
+                if not (pd.notnull(bk_date) and pd.notnull(gl_v[i, 1])
+                        and abs((gl_v[i, 1] - bk_date).days) > DAYS_WINDOW)
+            ]
+    
+            if len(candidats) < 2:
+                continue
+    
+            groupe = _trouver_sous_ensemble(gl_v, candidats, bk_montant)
+    
+            if groupe and len(groupe) >= 2:
+                # Retirer ces indices des restes pour ne pas les réutiliser
+                for i in groupe:
+                    restes_gl.remove(i)
+                restes_bk.remove(j)
+                gl_matched_idx.update(groupe)
+                bk_matched_idx.add(j)
+                groupes_detectes.append({
+                    'bk_date': bk_date, 'bk_montant': bk_montant,
+                    'bk_libelle': bk_v[j, 2], 'gl_indices': groupe,
+                })
+    
+        # ------------------------------------------------------------------ #
+        # PHASE 3 — Affichage                                                 #
+        # ------------------------------------------------------------------ #
         if alertes_dates:
             r.append(f"    ÉCARTS DE DATES ANORMAUX (> {DAYS_WINDOW} jours) :")
-            # Tri chronologique sur la date comptable
-            for a in sorted(alertes_dates, key=lambda x: x['date_gl'] if pd.notnull(x['date_gl']) else pd.Timestamp.min):
-                r.append(f"      - {a['date_gl'].strftime('%d/%m/%Y')} | {a['montant']:>8.2f}€ | {a['jours']}j d'écart (Banque: {a['date_bk'].strftime('%d/%m')}) | {a['libelle'][:30]}")
-
-        # --- B. Manquants en Banque (Triés par date de compta) ---
-        absent_banque_idx = [i for i in range(n) if i not in gl_matched_idx]
-        if absent_banque_idx:
-            r.append(f"    PRESENT EN COMPTABILITÉ SANS CORRESPONDANCE BANCAIRE :")
-            # Tri par la date présente dans gl_v à l'index i
-            for i in sorted(absent_banque_idx, key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1]) else pd.Timestamp.min):
+            for a in sorted(alertes_dates,
+                            key=lambda x: x['date_gl'] if pd.notnull(x['date_gl'])
+                                          else pd.Timestamp.min):
+                r.append(f"      - {a['date_gl'].strftime('%d/%m/%Y')} | {a['montant']:>8.2f}€ "
+                         f"| {a['jours']}j d'écart (Banque: {a['date_bk'].strftime('%d/%m')}) "
+                         f"| {a['libelle'][:30]}")
+    
+        if groupes_detectes:
+            r.append(f"    ÉCRITURES GROUPÉES RÉCONCILIÉES ({len(groupes_detectes)}) :")
+            for g in sorted(groupes_detectes,
+                            key=lambda x: x['bk_date'] if pd.notnull(x['bk_date'])
+                                          else pd.Timestamp.min):
+                d = g['bk_date'].strftime('%d/%m/%Y') if pd.notnull(g['bk_date']) else "N/A"
+                r.append(f"      ► {d} | {g['bk_montant']:>8.2f}€ (banque) "
+                         f"← {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}")
+                for i in g['gl_indices']:
+                    dg = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
+                    r.append(f"          {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
+    
+        # Anomalies résiduelles (vrais problèmes)
+        absent_banque  = [i for i in range(n) if i not in gl_matched_idx]
+        absent_compta  = [j for j in range(m) if j not in bk_matched_idx]
+    
+        if absent_banque:
+            r.append(f"    PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
+            for i in sorted(absent_banque,
+                            key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
+                                            else pd.Timestamp.min):
                 d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                 r.append(f"      - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
-                total_anomalies += gl_v[i, 0] # Montant en compta qui n'existe pas en banque
-
-        # --- C. Manquants en Compta (Triés par date de banque) ---
-        absent_compta_idx = [j for j in range(m) if j not in bk_matched_idx]
-        if absent_compta_idx:
-            r.append(f"    PRESENT EN BANQUE SANS JUSTIFICATION COMPTABLE :")
-            # Tri par la date présente dans bk_v à l'index j
-            for j in sorted(absent_compta_idx, key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1]) else pd.Timestamp.min):
+                total_anomalies += gl_v[i, 0]
+    
+        if absent_compta:
+            r.append(f"    PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
+            for j in sorted(absent_compta,
+                            key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1])
+                                            else pd.Timestamp.min):
                 d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
                 r.append(f"      - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
-                total_anomalies += bk_v[j, 0] # Argent sorti/entré en banque sans écriture
-        
-        if not alertes_dates and not absent_banque_idx and not absent_compta_idx:
+                total_anomalies += bk_v[j, 0]
+    
+        if not any([alertes_dates, groupes_detectes, absent_banque, absent_compta]):
             r.append(f"    Rapprochement parfait pour les {label_gl.lower()}.")
+        elif not absent_banque and not absent_compta:
+            r.append(f"    Rapprochement complet "
+                     f"(dont {len(groupes_detectes)} écriture(s) groupée(s)).")
 
     # --- PRÉPARATION DES DONNÉES ET APPELS ---
     if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns and not df_bank.empty:
@@ -725,15 +777,15 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     if budget > 0:
         ratio = (total_anomalies / budget) * 100
-        r.append(f"    Budget (appels de fonds 701xxx) : {budget:>12.2f} EUR")
-        r.append(f"    Total des anomalies détectées   : {total_anomalies:>12.2f} EUR")
-        r.append(f"    Ratio anomalies / budget        : {ratio:>11.2f} %")
+        r.append(f"    Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
+        r.append(f"    Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
+        r.append(f"    Ratio anomalies / budget        : {ratio:>11.0f} %")
         if ratio < 1:
             r.append("    Appréciation : Niveau d'anomalies faible (< 1% du budget).")
         elif ratio < 3:
             r.append("    Appréciation : Niveau d'anomalies modéré (1% à 3% du budget). Vérifications recommandées.")
         else:
-            r.append("    Appréciation : Niveau d'anomalies élevé (> 3% du budget). Contrôle approfondi nécessaire.")
+            r.append("    Appréciation : Niveau d'anomalies élevé (> 3% du budget). Contrôles approfondis nécessaires.")
     else:
         r.append("    Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
         r.append(f"    Total des anomalies détectées : {total_anomalies:.2f} EUR")
