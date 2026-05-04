@@ -323,7 +323,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
     r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
 
-    DAYS_WINDOW = 30
+    DAYS_WINDOW = 60
     
     def fuzzy_check_rejet(libelle):
         if not isinstance(libelle, str): return False
@@ -354,7 +354,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             montant_rej = rej['DEBIT']
             
             if pd.notnull(date_rej):
-                # On cherche en compta un montant identique dans les 30 jours suivant le rejet bancaire
+                # On cherche en compta un montant identique dans les 60 jours suivant le rejet bancaire
                 match = df_450[
                     (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
                     (df_450['DATE'] >= date_rej) & 
@@ -461,120 +461,184 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append(" Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
     r.append("-" * 80 + "\n")
 
-    DAYS_WINDOW = 30
+    DAYS_WINDOW        = 30  # tolérance de date pour le matching 1-to-1 et seuil d'alerte
+    DAYS_WINDOW_GROUPE = 7   # tolérance de date pour la recherche de groupements
 
+    # ------------------------------------------------------------------ #
+    # Fonction utilitaire : recherche de sous-ensemble (branch & bound)   #
+    # ------------------------------------------------------------------ #
+    def _trouver_sous_ensemble(gl_v, candidats, cible, tolerance=0.01, max_iter=2000):
+        """
+        Recherche un sous-ensemble de candidats (indices dans gl_v) dont la somme
+        des montants (gl_v[i, 0]) est égale à `cible` à `tolerance` près.
+        Retourne la liste des indices GL, ou None si introuvable.
+        """
+        montants = [gl_v[i, 0] for i in candidats]
+        n = len(montants)
+
+        # Suffixes cumulatifs pour l'élagage (somme max restante)
+        suffixes = [0.0] * (n + 1)
+        for k in range(n - 1, -1, -1):
+            suffixes[k] = suffixes[k + 1] + montants[k]
+
+        iterations = [0]
+
+        def backtrack(start, somme_courante, chemin):
+            iterations[0] += 1
+            if iterations[0] > max_iter:
+                return None
+            if abs(somme_courante - cible) <= tolerance:
+                return chemin[:]
+            if start == n:
+                return None
+            # Élagage : même en prenant tout le reste on ne peut pas atteindre la cible
+            if somme_courante + suffixes[start] < cible - tolerance:
+                return None
+            # Élagage : la somme courante dépasse déjà la cible
+            if somme_courante > cible + tolerance:
+                return None
+            for k in range(start, n):
+                chemin.append(candidats[k])
+                res = backtrack(k + 1, somme_courante + montants[k], chemin)
+                if res is not None:
+                    return res
+                chemin.pop()
+            return None
+
+        return backtrack(0, 0.0, [])
+
+    # ------------------------------------------------------------------ #
+    # Fonction principale de rapprochement                                #
+    # ------------------------------------------------------------------ #
     def effectuer_rapprochement_complet(df_gl_sub, df_bk_sub, label_gl, label_bk, col_gl_val, col_bk_val):
         nonlocal total_anomalies
-    
+
         if df_gl_sub.empty and df_bk_sub.empty:
             r.append(f"    Aucune écriture à rapprocher pour les {label_gl.lower()}.")
             return
+
         if df_gl_sub.empty or df_bk_sub.empty:
             if not df_gl_sub.empty:
                 r.append(f"    TOUTES les écritures de {label_gl} sont absentes en banque.")
             if not df_bk_sub.empty:
                 r.append(f"    TOUTES les écritures de {label_bk} sont absentes en comptabilité.")
             return
-    
+
         gl_v = df_gl_sub[[col_gl_val, 'DATE', 'LIBELLE']].reset_index(drop=True).values
         bk_v = df_bk_sub[[col_bk_val, 'DATE', 'LIBELLE']].reset_index(drop=True).values
         n, m = len(gl_v), len(bk_v)
-    
+
         # ------------------------------------------------------------------ #
-        # PHASE 1 — Matching 1-to-1 classique (Hongrois)                     #
+        # PHASE 1 — Matching 1-to-1 (algorithme hongrois)                    #
+        # Un match est refusé (coût = 1 000 000) si l'écart de dates         #
+        # dépasse DAYS_WINDOW : l'écriture tombe alors dans les restes.      #
         # ------------------------------------------------------------------ #
         cost_matrix = np.full((n, m), 1_000_000.0)
+
         for i in range(n):
             for j in range(m):
                 if abs(gl_v[i, 0] - bk_v[j, 0]) < 0.01:
                     if pd.notnull(gl_v[i, 1]) and pd.notnull(bk_v[j, 1]):
-                        cost_matrix[i, j] = abs((gl_v[i, 1] - bk_v[j, 1]).days)
+                        ecart = abs((gl_v[i, 1] - bk_v[j, 1]).days)
+                        cost_matrix[i, j] = ecart if ecart <= DAYS_WINDOW else 1_000_000.0
                     else:
-                        cost_matrix[i, j] = 0
-    
+                        cost_matrix[i, j] = 0  # date manquante : on accepte sans pénalité
+
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    
+
         gl_matched_idx = set()
         bk_matched_idx = set()
         alertes_dates  = []
-    
+
         for i, j in zip(row_ind, col_ind):
             if cost_matrix[i, j] < 1_000_000:
                 gl_matched_idx.add(i)
                 bk_matched_idx.add(j)
                 if cost_matrix[i, j] > DAYS_WINDOW:
+                    # Ne peut plus arriver avec la logique ci-dessus,
+                    # mais on garde la garde-fou par cohérence
                     alertes_dates.append({
                         'date_gl': gl_v[i, 1], 'date_bk': bk_v[j, 1],
-                        'montant': gl_v[i, 0], 'libelle': gl_v[i, 2],
+                        'montant': gl_v[i, 0],  'libelle': gl_v[i, 2],
                         'jours':   int(cost_matrix[i, j]),
                     })
-    
+
         # Restes après matching 1-to-1
         restes_gl = [i for i in range(n) if i not in gl_matched_idx]
         restes_bk = [j for j in range(m) if j not in bk_matched_idx]
-    
+
         # ------------------------------------------------------------------ #
         # PHASE 2 — Détection des groupements parmi les restes uniquement    #
-        # Cherche : N lignes GL (restes) dont la somme = 1 ligne Banque      #
+        # Cherche : N lignes GL dont la somme = 1 ligne Banque               #
+        # La fenêtre DAYS_WINDOW_GROUPE est volontairement plus stricte :    #
+        # un prélèvement groupé est toujours exécuté en quelques jours.      #
         # ------------------------------------------------------------------ #
         groupes_detectes = []
-    
-        for j in restes_bk[:]:           # copie car on modifie restes_bk
+
+        for j in restes_bk[:]:  # copie car on modifie restes_bk en cours de boucle
             bk_montant = bk_v[j, 0]
             bk_date    = bk_v[j, 1]
-    
-            # Candidats GL : restes dans la fenêtre de dates
+
+            # Candidats GL : restes dans la fenêtre stricte
             candidats = [
                 i for i in restes_gl
                 if not (pd.notnull(bk_date) and pd.notnull(gl_v[i, 1])
-                        and abs((gl_v[i, 1] - bk_date).days) > DAYS_WINDOW)
+                        and abs((gl_v[i, 1] - bk_date).days) > DAYS_WINDOW_GROUPE)
             ]
-    
+
             if len(candidats) < 2:
                 continue
-    
+
             groupe = _trouver_sous_ensemble(gl_v, candidats, bk_montant)
-    
+
             if groupe and len(groupe) >= 2:
-                # Retirer ces indices des restes pour ne pas les réutiliser
                 for i in groupe:
                     restes_gl.remove(i)
                 restes_bk.remove(j)
                 gl_matched_idx.update(groupe)
                 bk_matched_idx.add(j)
                 groupes_detectes.append({
-                    'bk_date': bk_date, 'bk_montant': bk_montant,
-                    'bk_libelle': bk_v[j, 2], 'gl_indices': groupe,
+                    'bk_date':    bk_date,
+                    'bk_montant': bk_montant,
+                    'bk_libelle': bk_v[j, 2],
+                    'gl_indices': groupe,
                 })
-    
+
         # ------------------------------------------------------------------ #
         # PHASE 3 — Affichage                                                 #
         # ------------------------------------------------------------------ #
+
+        # --- Alertes délais (matches 1-to-1 hors fenêtre) ---
         if alertes_dates:
             r.append(f"    ÉCARTS DE DATES ANORMAUX (> {DAYS_WINDOW} jours) :")
             for a in sorted(alertes_dates,
                             key=lambda x: x['date_gl'] if pd.notnull(x['date_gl'])
                                           else pd.Timestamp.min):
-                r.append(f"      - {a['date_gl'].strftime('%d/%m/%Y')} | {a['montant']:>8.2f}€ "
-                         f"| {a['jours']}j d'écart (Banque: {a['date_bk'].strftime('%d/%m')}) "
-                         f"| {a['libelle'][:30]}")
-    
+                r.append(
+                    f"      - {a['date_gl'].strftime('%d/%m/%Y')} | {a['montant']:>8.2f}€ "
+                    f"| {a['jours']}j d'écart (Banque: {a['date_bk'].strftime('%d/%m')}) "
+                    f"| {a['libelle'][:30]}"
+                )
+
+        # --- Groupements réconciliés ---
         if groupes_detectes:
             r.append(f"    ÉCRITURES GROUPÉES RÉCONCILIÉES ({len(groupes_detectes)}) :")
             for g in sorted(groupes_detectes,
                             key=lambda x: x['bk_date'] if pd.notnull(x['bk_date'])
                                           else pd.Timestamp.min):
                 d = g['bk_date'].strftime('%d/%m/%Y') if pd.notnull(g['bk_date']) else "N/A"
-                r.append(f"      ► {d} | {g['bk_montant']:>8.2f}€ (banque) "
-                         f"← {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}")
-                for i in g['gl_indices']:
+                r.append(
+                    f"      ► {d} | {g['bk_montant']:>8.2f}€ (banque) "
+                    f"← {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}"
+                )
+                for i in sorted(g['gl_indices'],
+                                key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
+                                                else pd.Timestamp.min):
                     dg = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                     r.append(f"          {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
-    
-        # Anomalies résiduelles (vrais problèmes)
-        absent_banque  = [i for i in range(n) if i not in gl_matched_idx]
-        absent_compta  = [j for j in range(m) if j not in bk_matched_idx]
-    
+
+        # --- Anomalies résiduelles : présence compta / absence banque ---
+        absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
             r.append(f"    PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
             for i in sorted(absent_banque,
@@ -583,7 +647,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                 r.append(f"      - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
                 total_anomalies += gl_v[i, 0]
-    
+
+        # --- Anomalies résiduelles : présence banque / absence compta ---
+        absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
             r.append(f"    PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
             for j in sorted(absent_compta,
@@ -592,40 +658,45 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
                 r.append(f"      - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
                 total_anomalies += bk_v[j, 0]
-    
+
+        # --- Conclusion ---
         if not any([alertes_dates, groupes_detectes, absent_banque, absent_compta]):
             r.append(f"    Rapprochement parfait pour les {label_gl.lower()}.")
         elif not absent_banque and not absent_compta:
-            r.append(f"    Rapprochement complet "
-                     f"(dont {len(groupes_detectes)} écriture(s) groupée(s)).")
+            r.append(
+                f"    Rapprochement complet "
+                f"(dont {len(groupes_detectes)} écriture(s) groupée(s) réconciliée(s))."
+            )
 
-    # --- PRÉPARATION DES DONNÉES ET APPELS ---
+    # ------------------------------------------------------------------ #
+    # PRÉPARATION DES DONNÉES ET APPELS                                   #
+    # ------------------------------------------------------------------ #
     if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns and not df_bank.empty:
-        # Copie et nettoyage pour éviter de modifier les DataFrames originaux
+
         gl_clean = df_gl.copy()
         gl_clean['DATE'] = pd.to_datetime(gl_clean['DATE'], errors='coerce')
-        
+
         bk_clean = df_bank.copy()
         bk_clean['DATE'] = pd.to_datetime(bk_clean['DATE'], errors='coerce')
 
         # Filtrage du compte 512
         mask_512 = gl_clean['NUMERO_COMPTE'].astype(str).str.startswith('512')
-        df_512 = gl_clean[mask_512].copy()
+        df_512   = gl_clean[mask_512].copy()
 
-        # 1. ANALYSE DES ENCAISSEMENTS (Débit 512 vs. Crédit Banque)
+        # 1. ENCAISSEMENTS — Débit 512 (compta) vs Crédit banque
         r.append("--- ENCAISSEMENTS (Paiements copropriétaires, etc.) ---")
         gl_e = df_512[df_512['DEBIT'] > 0.001].copy()
         bk_e = bk_clean[bk_clean['CREDIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_e, bk_e, "Encaissements", "Banque", "DEBIT", "CREDIT")
 
-        # 2. ANALYSE DES DÉCAISSEMENTS (Crédit 512 vs Débit Banque)
+        # 2. DÉCAISSEMENTS — Crédit 512 (compta) vs Débit banque
         r.append("\n--- DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---")
         gl_d = df_512[df_512['CREDIT'] > 0.001].copy()
         bk_d = bk_clean[bk_clean['DEBIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_d, bk_d, "Décaissements", "Banque", "CREDIT", "DEBIT")
+
     else:
         r.append("    Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
-
 
 
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
