@@ -327,104 +327,75 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("    Données insuffisantes pour l'analyse des impayés.")
 
+
     
-
-    # --- SECTION D : REJETS BANCAIRES ---
+    # --- SECTION D : COMPTES D'ATTENTE (471 & 472) ---
     r.append("\n" + "="*80)
-    r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
-    r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
-    r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
-
-    DAYS_WINDOW = 60
+    r.append("[SECTION D] ANALYSE DYNAMIQUE DES COMPTES D'ATTENTE (471 & 472)")
+    r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice")
+    r.append("pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
     
-    def fuzzy_check_rejet(libelle):
-        if not isinstance(libelle, str): return False
-        # Liste de motifs de rejets (on peut inclure des versions avec/sans accents)
-        target_keywords = ['rejet', 'impaye', 'sans provision', 'non paye', 'rejete', 'impayé']
-        
-        libelle_clean = libelle.lower()
-        
-        # On utilise partial_ratio car le mot "rejet" est souvent au milieu d'une longue phrase
-        # exemple: "PRLV SEPA REJET DE M. DUPONT"
-        for kw in target_keywords:
-            if fuzz.partial_ratio(kw, libelle_clean) >= THRESHOLD_FUZZ:
-                return True
-        return False
-
-    if 'LIBELLE' in df_bank.columns and 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
-        # 1. Identification des rejets dans le relevé (Lignes au DÉBIT avec libellé "rejet")
-        rejets_detectes = df_bank[df_bank['LIBELLE'].apply(fuzzy_check_rejet) & (df_bank['DEBIT'] > 0)]
-        
-        # 2. Identification des écritures de régularisation en compta (Débit du compte 450)
-        # En compta, un rejet d'encaissement se traduit par un nouveau débit au compte du copropriétaire
-        df_450 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('450')) & (df_gl['DEBIT'] > 0)]
-        
-        nb_alertes_rejets = 0
-        
-        for _, rej in rejets_detectes.iterrows():
-            date_rej = rej['DATE']
-            montant_rej = rej['DEBIT']
-            
-            if pd.notnull(date_rej):
-                # On cherche en compta un montant identique dans les 60 jours suivant le rejet bancaire
-                match = df_450[
-                    (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
-                    (df_450['DATE'] >= date_rej) & 
-                    (df_450['DATE'] <= date_rej + timedelta(days=DAYS_WINDOW))
-                ]
-            else:
-                match = df_450[abs(df_450['DEBIT'] - montant_rej) < 0.05]
-                
-            if match.empty:
-                d_rej_str = date_rej.strftime('%d/%m/%Y') if pd.notnull(date_rej) else "N/A"
-                r.append(f"REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
-                nb_alertes_rejets += 1
-                # total_anomalies += montant_rej (double comptage avec le rapprochement bancaire complet sinon)
-                
-        if nb_alertes_rejets == 0 and not rejets_detectes.empty:
-            r.append("Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
-        elif rejets_detectes.empty:
-            r.append("Aucun rejet bancaire détecté sur la période.")
-    else:
-        r.append("Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
-
-
-
-    # --- SECTION E : COMPTES D'ATTENTE (471 & 472) ---
-    r.append("\n" + "="*80)
-    r.append("[SECTION E] ANALYSE DES COMPTES D'ATTENTE (471 & 472)")
-    r.append(" Ces comptes doivent être soldés à la clôture. Un solde persistant indique des fonds non identifiés")
-    r.append(" ou des dépenses sans justificatifs, souvent révélateurs d'une négligence administrative.\n")
-    if 'NUMERO_COMPTE' in df_gl.columns:
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns:
         for racine in ['471', '472']:
+            # Filtrage et préparation des données
             df_attente = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
+            df_attente['DATE'] = pd.to_datetime(df_attente['DATE'], errors='coerce')
+            df_attente = df_attente.dropna(subset=['DATE']).sort_values('DATE')
+    
             if not df_attente.empty:
-                solde = df_attente['CREDIT'].sum() - df_attente['DEBIT'].sum()
-                if abs(solde) > 5.00:
-                    type_solde = "CRÉDITEUR" if solde > 0 else "DÉBITEUR"
-                    r.append(f"COMPTE {racine} : Solde significatif de {abs(solde):.2f}€ ({type_solde})")
-                    total_anomalies += abs(solde)
-                    if solde > 0:
-                        r.append("   Solde Créditeur élevé : La copropriété détient une dette (sommes non affectées).")
-                    else:
-                        r.append("   Solde Débiteur élevé : Fonds avancés sans justification de dépense.")
-                else:
-                    r.append(f"    COMPTE {racine} : Le compte est globalement soldé.")
-
-                if 'DATE' in df_attente.columns:
-                    df_attente['DATE'] = pd.to_datetime(df_attente['DATE'], errors='coerce')
-                    ecritures_anciennes = df_attente[(date_ref - df_attente['DATE']).dt.days > 180]
-                    if not ecritures_anciennes.empty:
-                        r.append(f"    NÉGLIGENCE (Compte {racine}) : {len(ecritures_anciennes)} ligne(s) datent de plus de 6 mois.")
-                        for _, row in ecritures_anciennes.iterrows():
-                            d_str = row['DATE'].strftime('%d/%m/%Y') if pd.notnull(row['DATE']) else "N/A"
-                            r.append(f"      - {d_str} | {max(row['DEBIT'], row['CREDIT']):.2f}€ | {row['LIBELLE']}")
+                # 1. Analyse du Solde Final
+                solde_final = df_attente['CREDIT'].sum() - df_attente['DEBIT'].sum()
+                total_anomalies += abs(solde_final)
+                
+                # 2. Calcul du Pic de Trésorerie (Le montant max qui a "traîné")
+                df_attente['FLUX'] = df_attente['CREDIT'] - df_attente['DEBIT']
+                df_attente['SOLDE_CHRONO'] = df_attente['FLUX'].cumsum()
+                pic_max = df_attente['SOLDE_CHRONO'].abs().max()
+                date_pic = df_attente.loc[df_attente['SOLDE_CHRONO'].abs().idxmax(), 'DATE']
+    
+                # 3. Analyse du "Nettoyage" de fin d'année
+                # On regarde les mouvements dans les 30 derniers jours avant la clôture
+                date_cloture = df_attente['DATE'].max()
+                seuil_fin_annee = date_cloture - pd.Timedelta(days=30)
+                flux_fin_annee = df_attente[df_attente['DATE'] >= seuil_fin_annee]['FLUX'].abs().sum()
+                flux_total = df_attente['FLUX'].abs().sum()
+                ratio_nettoyage = (flux_fin_annee / flux_total * 100) if flux_total > 0 else 0
+    
+                # --- AFFICHAGE DES RÉSULTATS ---
+                r.append(f"--- ANALYSE DU COMPTE {racine} ---")
+                
+                # État final
+                type_solde = "CRÉDITEUR" if solde_final > 0 else "DÉBITEUR"
+                r.append(f"Solde au bilan : {abs(solde_final):.2f}€ ({type_solde if abs(solde_final) > 5 else 'Soldé'})")
+    
+                # Alerte Pic
+                if pic_max > 5000: # Seuil d'alerte à adapter
+                    r.append(f"Point de vigilance : Pic de {pic_max:.2f}€ atteint le {date_pic.strftime('%d/%m/%Y')}.")
+                
+                # Alerte Nettoyage Tardif
+                if ratio_nettoyage > 50 and abs(solde_final) < 100:
+                    r.append(f"ALERTE COSMÉTIQUE : {ratio_nettoyage:.1f}% des écritures ont été régularisées dans les 30 derniers jours. Nettoyage tardif des comptes.")
+    
+                # 4. Détail des écritures anciennes (plus de 180 jours)
+                # Utilisation de date_ref si définie, sinon la date max du dataframe
+                d_ref = date_ref if 'date_ref' in locals() else df_attente['DATE'].max()
+                ecritures_anciennes = df_attente[(d_ref - df_attente['DATE']).dt.days > 180]
+                
+                if not ecritures_anciennes.empty and abs(solde_final) > 5:
+                    r.append(f"NÉGLIGENCE : {len(ecritures_anciennes)} ligne(s) stagnent depuis plus de 6 mois.")
+                    for _, row in ecritures_anciennes.tail(5).iterrows(): # On montre les 5 plus vieilles
+                        r.append(f"   - {row['DATE'].strftime('%d/%m/%Y')} | {max(row['DEBIT'], row['CREDIT']):.2f}€ | {row['LIBELLE'][:40]}")
+                
+                r.append("") # Espace entre 471 et 472
             else:
-                r.append(f"    COMPTE {racine} : Aucun mouvement détecté.")
+                r.append(f"COMPTE {racine} : Aucun mouvement détecté.")
     else:
-        r.append("Données insuffisantes pour l'analyse des comptes d'attente.")
+        r.append("Données (Colonnes NUMERO_COMPTE ou DATE) manquantes pour l'analyse dynamique.")
 
-    # --- SECTION F : ANALYSE DES TIERS (461 & 462) ---
+    
+
+    
+    # --- SECTION E : ANALYSE DES TIERS (461 & 462) ---
     r.append("\n" + "="*80)
     r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
     r.append(" Surveille les créances sur tiers et les dossiers au contentieux.")
@@ -466,7 +437,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     
-    # --- SECTION G : RAPPROCHEMENT BANCAIRE COMPLET ---
+    
+    # --- SECTION F : RAPPROCHEMENT BANCAIRE COMPLET ---
     r.append("\n" + "="*80)
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
     r.append(" Compare ligne à ligne la banque et la comptabilité (Compte 512).")
@@ -711,6 +683,69 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
 
 
+
+    # --- SECTION G : REJETS BANCAIRES ---
+    r.append("\n" + "="*80)
+    r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
+    r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
+    r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
+
+    DAYS_WINDOW = 60
+    
+    def fuzzy_check_rejet(libelle):
+        if not isinstance(libelle, str): return False
+        # Liste de motifs de rejets (on peut inclure des versions avec/sans accents)
+        target_keywords = ['rejet', 'impaye', 'sans provision', 'non paye', 'rejete', 'impayé']
+        
+        libelle_clean = libelle.lower()
+        
+        # On utilise partial_ratio car le mot "rejet" est souvent au milieu d'une longue phrase
+        # exemple: "PRLV SEPA REJET DE M. DUPONT"
+        for kw in target_keywords:
+            if fuzz.partial_ratio(kw, libelle_clean) >= THRESHOLD_FUZZ:
+                return True
+        return False
+
+    if 'LIBELLE' in df_bank.columns and 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
+        # 1. Identification des rejets dans le relevé (Lignes au DÉBIT avec libellé "rejet")
+        rejets_detectes = df_bank[df_bank['LIBELLE'].apply(fuzzy_check_rejet) & (df_bank['DEBIT'] > 0)]
+        
+        # 2. Identification des écritures de régularisation en compta (Débit du compte 450)
+        # En compta, un rejet d'encaissement se traduit par un nouveau débit au compte du copropriétaire
+        df_450 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('450')) & (df_gl['DEBIT'] > 0)]
+        
+        nb_alertes_rejets = 0
+        
+        for _, rej in rejets_detectes.iterrows():
+            date_rej = rej['DATE']
+            montant_rej = rej['DEBIT']
+            
+            if pd.notnull(date_rej):
+                # On cherche en compta un montant identique dans les 60 jours suivant le rejet bancaire
+                match = df_450[
+                    (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
+                    (df_450['DATE'] >= date_rej) & 
+                    (df_450['DATE'] <= date_rej + timedelta(days=DAYS_WINDOW))
+                ]
+            else:
+                match = df_450[abs(df_450['DEBIT'] - montant_rej) < 0.05]
+                
+            if match.empty:
+                d_rej_str = date_rej.strftime('%d/%m/%Y') if pd.notnull(date_rej) else "N/A"
+                r.append(f"REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
+                nb_alertes_rejets += 1
+                # total_anomalies += montant_rej (double comptage avec le rapprochement bancaire complet sinon)
+                
+        if nb_alertes_rejets == 0 and not rejets_detectes.empty:
+            r.append("Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
+        elif rejets_detectes.empty:
+            r.append("Aucun rejet bancaire détecté sur la période.")
+    else:
+        r.append("Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
+
+ 
+    
+
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
     r.append("\n" + "="*80)
     r.append("[SECTION H] ANALYSE DES FOURNISSEURS OCCASIONNELS (< 4 écritures/an)")
@@ -771,6 +806,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("Données insuffisantes pour l'analyse du fonds de travaux.")
 
+
+    
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
@@ -852,6 +889,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     else:
         r.append("Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
 
+    
     
     # --- SYNTHESE CHIFFREE DES ANOMALIES EN PROPRORTION DU BUDGET ---
     r.append("\n" + "="*80)
