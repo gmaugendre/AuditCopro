@@ -1145,6 +1145,7 @@ col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 with col_texte:
     st.title("Assistant d'analyse des comptes de copropriété")
     st.subheader("Conseils syndicaux : reprenez le contrôle !")
+    st.subheader("Automatique. Immédiat. Confidentiel.")
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
@@ -1159,9 +1160,9 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("### 1. Import des documents (exercice N-1)")
-    gl_file = st.file_uploader("Grand livre (pdf)", type="pdf")
-    releves_files = st.file_uploader("12 relevés bancaires mensuels (pdf)", type="pdf", accept_multiple_files=True)
-    contrat_file = st.file_uploader("Contrat du syndic (pdf)", type="pdf")
+    gl_file = st.file_uploader("GRAND LIVRE (PDF)", type="pdf")
+    releves_files = st.file_uploader("12 RELEVES BANCAIRES MENSUELS (PDF)", type="pdf", accept_multiple_files=True)
+    contrat_file = st.file_uploader("CONTRAT DU SYNDIC (PDF)", type="pdf")
 
 # --- Saisie des 12 relevés de compte ---
 nb_fichiers = len(releves_files) if releves_files else 0
