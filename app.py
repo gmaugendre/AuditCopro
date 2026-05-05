@@ -106,9 +106,9 @@ def convert_pdf_to_excel(pdf_path):
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
             st.stop()
-        elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacités en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
-            st.stop()
+        #elif "503" in str(e) or "quota" in str(e).lower():
+        #    st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacités en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
+        #    st.stop()
         else:
             st.error(f" Erreur technique : {e}")
     return pd.DataFrame()
