@@ -1285,7 +1285,10 @@ with col2:
                 2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
                 3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
 
-                FORMAT: - N'utilise aucun emoji ni symbole Unicode spécial. Utilise uniquement des caractères ASCII standard (lettres, chiffres, ponctuation classique).
+                FORMAT:
+                - N'utilise aucun emoji ni symbole Unicode spécial. 
+                - Utilise uniquement des caractères ASCII standard (lettres, chiffres, ponctuation classique). 
+                - N'utilise ni gras ni italique, ni mise en forme complexe.
                 """
   
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
@@ -1362,7 +1365,7 @@ with col2:
                         texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
     
                         # On continue sur la même page ou la suivante automatiquement
-                        pdf.multi_cell(0, 6, texte_final, markdown=True)
+                        pdf.multi_cell(0, 6, texte_final, markdown=False)
     
                         # --- ANNEXES : Résultat brut des contrôles comptables ---
                         pdf.add_page()
