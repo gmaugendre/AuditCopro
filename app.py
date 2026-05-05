@@ -1231,7 +1231,7 @@ with col2:
                     # Utilisation du "SaaS Blue" pour un look startup
                     pdf.set_text_color(0, 102, 255) 
                     pdf.set_font("helvetica", "B", 18)
-                    pdf.cell(0, 14, "RAPPORT DE SYNTHÈSE D'ANALYSE AUTOMATISÉE DES COMPTES DE COPROPRIÉTÉ", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.cell(0, 14, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE DES COMPTES DE COPROPRIETE", new_x="LMARGIN", new_y="NEXT", align='C')
                     
                     pdf.ln(10)
                     
@@ -1276,6 +1276,7 @@ with col2:
                         .replace('–', '-').replace('—', '-')
                         .replace('…', '...').replace('•', '-')
                         .replace('€', ' EUR').replace('²', '2')
+                        .replace('œ', 'oe')
                         .replace('\u00a0', ' ')  # espace insécable
                         .replace('—', '-')
                     )
@@ -1304,6 +1305,7 @@ with col2:
                         .replace('–', '-').replace('—', '-')
                         .replace(''', "'").replace(''', "'")
                         .replace('"', '"').replace('"', '"')
+                        .replace('œ', 'oe')
                         .replace('…', '...').replace('\u00a0', ' ')
                     )
                     pdf.multi_cell(0, 4.5, texte_annexes)
