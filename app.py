@@ -27,7 +27,7 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-API_KEY = st.secrets["GEMINI_API_KEY4"]
+API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 GEMINI_MODEL="gemini-2.5-flash"
@@ -1231,7 +1231,7 @@ with col2:
                 progress_bar = st.progress(10)
  
                 # Lecture Grand Livre
-                status.update(label="📄 Lecture du Grand livre...", expanded=True)
+                status.update(label="📄 Lecture du Grand livre... Veuillez patienter", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
 
@@ -1243,12 +1243,12 @@ with col2:
  
                 # Fusion et lecture des relevés bancaires
                 merged_bank_path = merge_pdfs(releves_files, "rb")
-                status.update(label="🏦 Lecture des relevés bancaires...", expanded=True)
+                status.update(label="🏦 Lecture des relevés bancaires... Veuillez patienter", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(60)
  
                 # Lecture contrat
-                status.update(label="⚖️ Analyse du contrat du syndic...", expanded=True)
+                status.update(label="⚖️ Analyse du contrat du syndic... Veuillez patienter", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
                 progress_bar.progress(70)
  
@@ -1258,7 +1258,7 @@ with col2:
                 progress_bar.progress(80)
  
                 # Génération synthèse IA
-                status.update(label="✍️ Rédaction de la synthèse...", expanded=True)
+                status.update(label="✍️ Rédaction de la synthèse... Veuillez patienter", expanded=True)
  
                 prompt_complet = f"""
                 Tu es un auditeur spécialisé en copropriété. Ton objectif est de rédiger 
@@ -1288,7 +1288,7 @@ with col2:
                 FORMAT:
                 - N'utilise aucun emoji ni symbole Unicode spécial. 
                 - Utilise uniquement des caractères ASCII standard (lettres, chiffres, ponctuation classique). 
-                - N'utilise ni gras ni italique, ni mise en forme complexe.
+                - N'utilise ni gras, ni italique, ni mise en forme complexe.
                 """
   
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
@@ -1300,7 +1300,7 @@ with col2:
                         )
                         synthese_texte = response.text
     
-                        # --- 1. CONFIGURATION INITIALE DU PDF ---
+                        # --- CONFIGURATION INITIALE DU PDF ---
                         pdf = FPDF()
                         pdf.add_page()
                         pdf.set_margins(left=25, top=15, right=15)
@@ -1412,8 +1412,6 @@ with col2:
                         st.session_state["pdf_synthese"] = None
                         st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
 
-                
-                progress_bar.progress(90)
                 
                 # --- GÉNÉRATION DU PDF GRAPHIQUE --- (désactivé)
                 # try:
