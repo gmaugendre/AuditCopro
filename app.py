@@ -27,7 +27,7 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-API_KEY = st.secrets["GEMINI_API_KEY3"]
+API_KEY = st.secrets["GEMINI_API_KEY4"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 GEMINI_MODEL="gemini-2.5-flash"
@@ -36,8 +36,8 @@ GEMINI_MODEL="gemini-2.5-flash"
 THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
-MAX_RETRIES = 100
-WAIT_SECONDS = 15
+MAX_RETRIES = 1 #Nombre d'essais en tout pour chaque appel IA
+WAIT_MINUTES = 5 #Temps d'attente avant ré-essai en minutes
 
 ##############################################################################################################################################################"
 
@@ -114,8 +114,8 @@ def convert_pdf_to_excel(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
-                    time.sleep(WAIT_SECONDS)
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{RIES})")
+                    time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                     st.stop()
@@ -172,8 +172,8 @@ def extract_releve_data(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
-                    time.sleep(WAIT_SECONDS)
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{RIES})")
+                    time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                     st.stop()
@@ -253,8 +253,8 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
-                    time.sleep(WAIT_SECONDS)
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                     st.stop()
@@ -1312,10 +1312,11 @@ with col2:
                         NOIR   = (30, 30, 30)
     
                         # --- AJOUT DU TITRE ET PRÉAMBULE ---
-                        pdf.set_text_color(*NAVY) 
+                        pdf.set_text_color(*NAVY)
                         pdf.set_font("helvetica", "B", 14)
-                        pdf.cell(0, 14, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE\nDES COMPTES DE COPROPRIETE", align='C', new_x="LMARGIN", new_y="NEXT")
-                        pdf.ln(4)
+                        pdf.cell(0, 8, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE", new_x="LMARGIN", new_y="NEXT", align='C')
+                        pdf.cell(0, 8, "DES COMPTES DE COPROPRIETE", new_x="LMARGIN", new_y="NEXT", align='C')
+                        pdf.ln(10)
                         pdf.set_draw_color(*OR)
                         pdf.set_line_width(0.5)
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -1326,13 +1327,14 @@ with col2:
                         pdf.set_text_color(*NOIR)
                         texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
                         pdf.multi_cell(0, 6, texte_preambule)
-                                            
-                        # Disclaimer
                         pdf.ln(10)
+         
+                        # Disclaimer
                         pdf.set_text_color(*GRIS)
-                        pdf.set_font("helvetica", "I", 9)
+                        pdf.set_font("helvetica", "I", 10)
                         texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                         pdf.multi_cell(0, 5, texte_disclaimer)
+                        pdf.ln(10)
                         
                         # On réinitialise la couleur et la police pour la suite
                         pdf.set_text_color(*NOIR)
@@ -1341,14 +1343,14 @@ with col2:
                         # Ligne de séparation
                         pdf.set_draw_color(*OR)
                         pdf.set_line_width(0.5)
-                        pdf.line(25, pdf.get_y(), 195, pdf.get_y())
-                        pdf.ln(10)
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(20)
                                         
                         # Titre de la section IA
                         pdf.set_font("helvetica", "B", 14)
                         pdf.set_text_color(*NAVY)
                         pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
-                        pdf.ln(2)
+                        pdf.ln(20)
                         
                         # Nettoyage du texte pour éviter les erreurs d'encodage communes
                         texte_final = (synthese_texte
@@ -1370,11 +1372,11 @@ with col2:
                         pdf.set_font("helvetica", "B", 14)
                         pdf.set_text_color(*NAVY)
                         pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
-                        pdf.ln(4)
+                        pdf.ln(10)
                         pdf.set_draw_color(*OR)
                         pdf.set_line_width(0.5)
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                        pdf.ln(6)
+                        pdf.ln(20)
                         
                         pdf.set_font("courier", size=10)
                         pdf.set_text_color(*NOIR)
@@ -1396,8 +1398,8 @@ with col2:
                             st.stop()
                         elif "503" in str(e):
                             if attempt < MAX_RETRIES - 1:
-                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
-                                time.sleep(WAIT_SECONDS)
+                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                                time.sleep(WAIT_MINUTES * 60)
                             else:
                                 st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                                 st.stop()
@@ -1486,6 +1488,6 @@ st.markdown("---")
 st.markdown(" ###### Les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer: Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes.")
-st.caption(" ###### Protection des données: aucune donnée n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
+st.caption(" ###### Disclaimer : Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes.")
+st.caption(" ###### Protection des données : aucune donnée n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
 st.caption(" ###### Tous droits réservés.")
