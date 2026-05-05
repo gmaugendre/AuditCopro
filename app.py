@@ -106,7 +106,7 @@ def convert_pdf_to_excel(pdf_path):
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
             st.stop()
-        elif "521" in str(e) or "quota" in str(e).lower():
+        elif "503" in str(e) or "quota" in str(e).lower():
             st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
             st.stop()
         else:
@@ -158,7 +158,7 @@ def extract_releve_data(pdf_path):
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
             st.stop()
-        elif "521" in str(e) or "quota" in str(e).lower():
+        elif "503" in str(e) or "quota" in str(e).lower():
             st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement des relevés bancaires. Réessayez un peu plus tard.")
             st.stop()
         else:
@@ -234,7 +234,7 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
             st.stop()
-        elif "521" in str(e) or "quota" in str(e).lower():
+        elif "503" in str(e) or "quota" in str(e).lower():
             st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du contrat. Réessayez un peu plus tard.")
             st.stop()
         else:
@@ -1238,38 +1238,43 @@ with col2:
 
                     # --- AJOUT DU LOGO ---
                     pdf.image("Logo.png", x=170, y=10, w=25)
+                    pdf.ln(50)
 
                     # --- AJOUT DU TITRE ET PRÉAMBULE ---
                     # Utilisation du "SaaS Blue" pour un look startup
                     pdf.set_text_color(0, 102, 255) 
-                    pdf.set_font("helvetica", "B", 18)
+                    pdf.set_font("helvetica", "B", 14)
                     pdf.cell(0, 14, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE DES COMPTES DE COPROPRIETE", new_x="LMARGIN", new_y="NEXT", align='C')
-                    
-                    pdf.ln(10)
+                    pdf.ln(4)
+                    pdf.set_draw_color(0, 102, 255)
+                    pdf.set_line_width(0.5)
+                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+
+                    pdf.ln(20)
                     
                     # Section Préambule
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.set_font("helvetica", "B", 12)
-                    pdf.cell(0, 10, "Préambule et méthodologie :", new_x="LMARGIN", new_y="NEXT")
+                    pdf.set_text_color(100, 100, 100) # Gris
+                    pdf.set_font("helvetica", "B", 14)
+                    pdf.cell(0, 10, "Préambule et méthodologie", new_x="LMARGIN", new_y="NEXT")
                     
                     # 1. Préambule (Corps de texte standard)
-                    pdf.set_font("helvetica", size=11)
-                    pdf.set_text_color(0, 0, 0)
+                    pdf.set_font("helvetica", 10)
+                    pdf.set_text_color(100, 100, 100) # Gris
                     texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
                     pdf.multi_cell(0, 6, texte_preambule)
                                         
                     # Disclaimer (Stylisé : Italique et Gris pour un look plus "légal/pro")
                     pdf.ln(10)
-                    pdf.set_font("helvetica", "I", 9)
+                    pdf.set_font("helvetica", "I", 10)
                     pdf.set_text_color(100, 100, 100) # Gris
-                    texte_disclaimer = "Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
+                    texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
                     pdf.multi_cell(0, 5, texte_disclaimer)
                     
                     # On réinitialise la couleur et la police pour la suite
                     pdf.set_text_color(0, 0, 0)
                     pdf.set_font("helvetica", size=11)
 
-                    # Optionnel : une ligne de séparation
+                    # Ligne de séparation
                     pdf.set_draw_color(0, 102, 255)
                     pdf.set_line_width(0.5)
                     pdf.line(25, pdf.get_y(), 195, pdf.get_y())
@@ -1288,13 +1293,12 @@ with col2:
                         .replace('–', '-').replace('—', '-')
                         .replace('…', '...').replace('•', '-')
                         .replace('€', ' EUR').replace('²', '2')
-                        .replace('œ', 'oe')
                         .replace('\u00a0', ' ')  # espace insécable
                         .replace('—', '-')
                     )
                     texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
                         
-                    pdf.set_font("helvetica", size=11)
+                    pdf.set_font("helvetica", size=10)
                     pdf.set_text_color(0, 0, 0)
                     # On continue sur la même page ou la suivante automatiquement
                     pdf.multi_cell(0, 6, texte_final, markdown=True)
@@ -1317,7 +1321,6 @@ with col2:
                         .replace('–', '-').replace('—', '-')
                         .replace(''', "'").replace(''', "'")
                         .replace('"', '"').replace('"', '"')
-                        .replace('œ', 'oe')
                         .replace('…', '...').replace('\u00a0', ' ')
                     )
                     pdf.multi_cell(0, 4.5, texte_annexes)
@@ -1329,7 +1332,7 @@ with col2:
                     if "429" in str(e) or "quota" in str(e).lower():
                         st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
                         st.stop()
-                    elif "521" in str(e) or "quota" in str(e).lower():
+                    elif "503" in str(e) or "quota" in str(e).lower():
                         st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors de la génération du rapport. Réessayez un peu plus tard.")
                         st.stop()
                     st.session_state["pdf_synthese"] = None
