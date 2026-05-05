@@ -1161,10 +1161,10 @@ def generer_rapport_graphique(df_gl):
 
 # --- INTERFACE STREAMLIT ---
 # Couleurs
-NAVY   = (26, 39, 68)
-OR     = (201, 168, 76)
-GRIS   = (110, 110, 110)
-NOIR   = (30, 30, 30)
+NAVY   = rgb(26, 39, 68)
+OR     = rgb(201, 168, 76)
+GRIS   = rgb(110, 110, 110)
+NOIR   = rgb(30, 30, 30)
 
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
