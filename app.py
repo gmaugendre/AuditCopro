@@ -1161,18 +1161,17 @@ def generer_rapport_graphique(df_gl):
 
 # --- INTERFACE STREAMLIT ---
 # Couleurs
-NAVY   = "rgb(26, 39, 68)"
-OR     = "rgb(201, 168, 76)"
-GRIS   = "rgb(110, 110, 110)"
-NOIR   = "rgb(30, 30, 30)"
+NAVY   = (26, 39, 68)
+OR     = (201, 168, 76)
+GRIS   = (110, 110, 110)
+NOIR   = (30, 30, 30)
 
 col_texte, col_logo = st.columns([4, 1], vertical_alignment="center")
 
 with col_texte:
-    #st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">L\'expert digital d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f"""<h1 style="color: {NAVY}; margin-bottom: 0;">L'expert digital<br>d'analyse des comptes de copropriété</h1>""", unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: {OR}; margin-top: 0;">Simple. Automatique. Immédiat.</h3>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: {OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
+    st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">L\'expert digital<br>d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Simple. Automatique. Immédiat.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
     # On affiche le logo à droite
