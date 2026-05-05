@@ -1350,13 +1350,14 @@ with col2:
                         
                         # Nettoyage du texte pour éviter les erreurs d'encodage communes
                         texte_final = (synthese_texte
-                            .replace(''', "'").replace(''', "'")
-                            .replace('"', '"').replace('"', '"')
-                            .replace('–', '-').replace('—', '-')
-                            .replace('…', '...').replace('•', '-')
-                            .replace('€', ' EUR').replace('²', '2')
-                            .replace('\u00a0', ' ')  # espace insécable
-                            .replace('—', '-')
+                            .replace("’", "'").replace("‘", "'")
+                            .replace("“", '"').replace("”", '"')
+                            .replace("–", "-").replace("—", "-")
+                            .replace("…", "...")
+                            .replace("•", "-")
+                            .replace("€", " EUR")
+                            .replace("²", "2")
+                            .replace("\u00a0", " ") # Espace insécable
                         )
                         texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
     
@@ -1377,11 +1378,14 @@ with col2:
                         pdf.set_font("courier", size=10)
                         pdf.set_text_color(*NOIR)
                         texte_annexes = (rapport_final
-                            .replace('€', ' EUR')
-                            .replace('–', '-').replace('—', '-')
-                            .replace(''', "'").replace(''', "'")
-                            .replace('"', '"').replace('"', '"')
-                            .replace('…', '...').replace('\u00a0', ' ')
+                            .replace("’", "'").replace("‘", "'")
+                            .replace("“", '"').replace("”", '"')
+                            .replace("–", "-").replace("—", "-")
+                            .replace("…", "...")
+                            .replace("•", "-")
+                            .replace("€", " EUR")
+                            .replace("²", "2")
+                            .replace("\u00a0", " ") # Espace insécable
                         )
                         pdf.multi_cell(0, 4.5, texte_annexes)
      
