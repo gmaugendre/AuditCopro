@@ -1180,7 +1180,7 @@ with col_texte:
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
-    st.image("Logo.png", width=300) # use_container_width=True
+    st.image("Logo.png", width=400) # use_container_width=True
 st.markdown("---")
 # st.title("Assistant d'analyse des comptes de copropriété")
 # st.subheader("Conseils syndicaux : reprenez le contrôle !")
