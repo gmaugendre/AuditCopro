@@ -1191,7 +1191,7 @@ with col2:
                 <FIN DU RESULTAT DES CONTROLES COMPTABLES>
                 
                 POSTURE ET TON :
-                - Pédagogue : explique le "pourquoi" derrière chaque anomalie détectée.
+                - Pédagogue : explique les raisons derrière chaque anomalie détectée.
                 - Diplomate : ne sois jamais accusateur envers le syndic. Remplace 
                   "surfacturation" par "écart à clarifier", "erreur" par "point à vérifier".
                 - Prudent : utilise le conditionnel ("il semblerait", "pourrait indiquer").
@@ -1203,14 +1203,9 @@ with col2:
                 LONGUEUR: 2 à 4 pages
                 
                 STRUCTURE OBLIGATOIRE :
-                1.Mets le titre centré et en gras tout en haut: "RAPPORT DE SYNTHÈSE D'ANALYSE AUTOMATISEE DES COMPTES DE COPROPRIÉTÉ". N'ajoute aucun autre titre.
-                Puis indique la date du rapport et la période analysée.
-                2. Préambule: Copier strictement ce texte:
-                "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la coproriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes.
-                Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
-                Puis fais une phrase indiquant le Total des anomalies détectées et le Ratio anomalies / budget.
-                3. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
-                4. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
+                1. Ne mets aucun titre. Indique la date du rapport et la période analysée. Puis fais une phrase indiquant le Total des anomalies détectées et le Ratio anomalies / budget.
+                2. Sections thématiques : une section par grande catégorie de contrôles effectués lorsque des anomalies ou interrogations ont été soulevées.
+                3. Conclusion : synthèse des points principaux à discuter avec le syndic, accompagnée pour chacun d'une recommandation concrète (régularisation, demande de justificatif, mise en concurrence...).
 
                 FORMAT: - N'utilise aucun emoji ni symbole Unicode spécial. Utilise uniquement des caractères ASCII standard (lettres, chiffres, ponctuation classique).
                 """
@@ -1222,16 +1217,58 @@ with col2:
                         contents=prompt_complet
                     )
                     synthese_texte = response.text
-  
+
+                    # --- 1. CONFIGURATION INITIALE DU PDF ---
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_margins(left=25, top=15, right=15)
                     pdf.set_auto_page_break(auto=True, margin=15)
-                    # Police standard (fpdf2 gère mieux l'UTF-8 par défaut)
-                    pdf.set_font("helvetica", "B", 16)
-                    pdf.cell(0, 10, "Rapport de Synthèse de Copropriété", new_x="LMARGIN", new_y="NEXT", align='C')
-                    pdf.ln(5)
-        
+
+                    # --- AJOUT DU LOGO ---
+                    pdf.image("Logo.png", x=170, y=10, w=25)
+
+                    # --- AJOUT DU TITRE ET PRÉAMBULE ---
+                    # Utilisation du "SaaS Blue" pour un look startup
+                    pdf.set_text_color(0, 102, 255) 
+                    pdf.set_font("helvetica", "B", 18)
+                    pdf.cell(0, 14, "RAPPORT DE SYNTHÈSE D'ANALYSE AUTOMATISÉE DES COMPTES DE COPROPRIÉTÉ", new_x="LMARGIN", new_y="NEXT", align='C')
+                    
+                    pdf.ln(10)
+                    
+                    # Section Préambule
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.set_font("helvetica", "B", 12)
+                    pdf.cell(0, 10, "Préambule et méthodologie :", new_x="LMARGIN", new_y="NEXT")
+                    
+                    # 1. Préambule (Corps de texte standard)
+                    pdf.set_font("helvetica", size=11)
+                    pdf.set_text_color(0, 0, 0)
+                    texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
+                    pdf.multi_cell(0, 6, texte_preambule)
+                                        
+                    # Disclaimer (Stylisé : Italique et Gris pour un look plus "légal/pro")
+                    pdf.ln(10)
+                    pdf.set_font("helvetica", "I", 9)
+                    pdf.set_text_color(100, 100, 100) # Gris
+                    texte_disclaimer = "Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété et identifier des points de vigilance. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur site et sur pièces ainsi que de discussions avec le teneur de comptes."
+                    pdf.multi_cell(0, 5, texte_disclaimer)
+                    
+                    # On réinitialise la couleur et la police pour la suite
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.set_font("helvetica", size=11)
+
+                    # Optionnel : une ligne de séparation
+                    pdf.set_draw_color(0, 102, 255)
+                    pdf.set_line_width(0.5)
+                    pdf.line(25, pdf.get_y(), 195, pdf.get_y())
+                    pdf.ln(10)
+                                    
+                    # Titre de la section IA
+                    pdf.set_font("helvetica", "B", 14)
+                    pdf.set_text_color(0, 102, 255)
+                    pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
+                    pdf.ln(2)
+                    
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
                     texte_final = (synthese_texte
                         .replace(''', "'").replace(''', "'")
@@ -1243,27 +1280,24 @@ with col2:
                         .replace('—', '-')
                     )
                     texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
-                    # Utilisation de write_html pour interpréter le gras (**) de Gemini
-                    # fpdf2 convertit automatiquement le Markdown simple en HTML interne
+                        
                     pdf.set_font("helvetica", size=11)
-                    
-                    # On utilise le rendu Markdown de fpdf2
-                    # Si 'markdown=True' a échoué dans multi_cell, c'est souvent qu'il faut 
-                    # passer par la méthode dédiée aux textes longs :
-                    pdf.multi_cell(0, 6, texte_final, markdown=True) 
+                    pdf.set_text_color(0, 0, 0)
+                    # On continue sur la même page ou la suivante automatiquement
+                    pdf.multi_cell(0, 6, texte_final, markdown=True)
 
                     # --- ANNEXES : Résultat brut des contrôles comptables ---
                     pdf.add_page()
-                    pdf.set_font("helvetica", "B", 16)
-                    pdf.set_text_color(41, 128, 185)
+                    pdf.set_font("helvetica", "B", 14)
+                    pdf.set_text_color(0, 102, 255)
                     pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
                     pdf.ln(4)
-                    pdf.set_draw_color(41, 128, 185)
-                    pdf.set_line_width(0.8)
+                    pdf.set_draw_color(0, 102, 255)
+                    pdf.set_line_width(0.5)
                     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
                     pdf.ln(6)
                     
-                    pdf.set_font("courier", size=8)
+                    pdf.set_font("courier", size=10)
                     pdf.set_text_color(0, 0, 0)
                     texte_annexes = (rapport_final
                         .replace('€', ' EUR')
