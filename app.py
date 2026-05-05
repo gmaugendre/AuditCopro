@@ -37,7 +37,7 @@ THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
 MAX_RETRIES = 100
-WAIT_SECONDS = 5
+WAIT_SECONDS = 15
 
 ##############################################################################################################################################################"
 
