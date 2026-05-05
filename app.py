@@ -1300,16 +1300,16 @@ with col2:
                     pdf.ln(20)
                     
                     # 1. Préambule
-                    pdf.set_font("helvetica", 10)
-                    pdf.set_text_color(*GRIS)
+                    pdf.set_font("helvetica", 11)
+                    pdf.set_text_color(*NOIR)
                     texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
                     pdf.multi_cell(0, 6, texte_preambule)
                                         
                     # Disclaimer
                     pdf.ln(10)
-                    pdf.set_font("helvetica", "I", 10)
                     pdf.set_text_color(*GRIS)
-                    texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
+                    pdf.set_font("helvetica", "I", 9)
+                     texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                     pdf.multi_cell(0, 5, texte_disclaimer)
                     
                     # On réinitialise la couleur et la police pour la suite
@@ -1339,9 +1339,7 @@ with col2:
                         .replace('—', '-')
                     )
                     texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
-                        
-                    pdf.set_font("helvetica", size=10)
-                    pdf.set_text_color(*NOIR)
+
                     # On continue sur la même page ou la suivante automatiquement
                     pdf.multi_cell(0, 6, texte_final, markdown=True)
 
@@ -1357,7 +1355,7 @@ with col2:
                     pdf.ln(6)
                     
                     pdf.set_font("courier", size=10)
-                    pdf.set_text_color(0, 0, 0)
+                    pdf.set_text_color(*NOIR)
                     texte_annexes = (rapport_final
                         .replace('€', ' EUR')
                         .replace('–', '-').replace('—', '-')
