@@ -1166,7 +1166,7 @@ OR     = "rgb(201, 168, 76)"
 GRIS   = "rgb(110, 110, 110)"
 NOIR   = "rgb(30, 30, 30)"
 
-col_texte, col_logo = st.columns([5, 1], vertical_alignment="center")
+col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
     #st.title("Assistant d'analyse des comptes de copropriété")
@@ -1179,12 +1179,8 @@ with col_texte:
 
 with col_logo:
     # On affiche le logo à droite
-    # use_container_width permet au logo de s'adapter à la petite colonne
-    st.image("Logo.png", width=300) # use_container_width=True
+    st.image("Logo.png", use_container_width=True)
 st.markdown("---")
-# st.title("Assistant d'analyse des comptes de copropriété")
-# st.subheader("Conseils syndicaux : reprenez le contrôle !")
-# st.markdown("---")
 
 # --- CHARGEMENT DES DONNEES ---
 
