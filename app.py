@@ -104,10 +104,10 @@ def convert_pdf_to_excel(pdf_path):
         
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
             st.stop()
         elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
+            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacités en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
             st.stop()
         else:
             st.error(f" Erreur technique : {e}")
@@ -156,10 +156,10 @@ def extract_releve_data(pdf_path):
 
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
+            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
             st.stop()
         elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement des relevés bancaires. Réessayez un peu plus tard.")
+            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacités en raison d'une forte affluence lors du traitement des relevés bancaires. Réessayez un peu plus tard.")
             st.stop()
         else:
             st.error(f" Erreur technique : {e}")
@@ -1145,7 +1145,7 @@ col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 with col_texte:
     st.title("Assistant d'analyse des comptes de copropriété")
     st.subheader("Conseils syndicaux : reprenez le contrôle !")
-    st.subheader("Automatique. Immédiat. Confidentiel.")
+    st.subheader("*Automatique. Immédiat. Confidentiel.*")
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
@@ -1373,10 +1373,10 @@ with col2:
  
                 except Exception as e:
                     if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
+                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
                         st.stop()
                     elif "503" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors de la génération du rapport. Réessayez un peu plus tard.")
+                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacités en raison d'une forte affluence lors de la génération du rapport. Réessayez un peu plus tard.")
                         st.stop()
                     st.session_state["pdf_synthese"] = None
                     st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
