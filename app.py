@@ -34,6 +34,10 @@ GEMINI_MODEL="gemini-2.5-flash"
 
 THRESHOLD_FUZZ=85
 
+#POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
+MAX_RETRIES = 3
+WAIT_SECONDS = 60
+
 ##############################################################################################################################################################"
 
 # --- FONCTIONS UTILITAIRES ---
@@ -1266,117 +1270,123 @@ with col2:
                 """
   
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
-                try:
-                    response = client.models.generate_content(
-                        model=GEMINI_MODEL,
-                        contents=prompt_complet
-                    )
-                    synthese_texte = response.text
-
-                    # --- 1. CONFIGURATION INITIALE DU PDF ---
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_margins(left=25, top=15, right=15)
-                    pdf.set_auto_page_break(auto=True, margin=15)
-
-                    # --- AJOUT DU LOGO ---
-                    pdf.image("Logo.png", x=170, y=10, w=25)
-                    pdf.ln(30)
-
-                    # Couleurs
-                    NAVY   = (26, 39, 68)
-                    OR     = (201, 168, 76)
-                    GRIS   = (110, 110, 110)
-                    NOIR   = (30, 30, 30)
-
-                    # --- AJOUT DU TITRE ET PRÉAMBULE ---
-                    pdf.set_text_color(*NAVY) 
-                    pdf.set_font("helvetica", "B", 14)
-                    pdf.cell(0, 14, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE\nDES COMPTES DE COPROPRIETE", align='C', new_x="LMARGIN", new_y="NEXT")
-                    pdf.ln(4)
-                    pdf.set_draw_color(*OR)
-                    pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(20)
-                    
-                    # 1. Préambule
-                    pdf.set_font("helvetica", 11)
-                    pdf.set_text_color(*NOIR)
-                    texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
-                    pdf.multi_cell(0, 6, texte_preambule)
+                for attempt in range(MAX_RETRIES):
+                    try:
+                        response = client.models.generate_content(
+                            model=GEMINI_MODEL,
+                            contents=prompt_complet
+                        )
+                        synthese_texte = response.text
+    
+                        # --- 1. CONFIGURATION INITIALE DU PDF ---
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_margins(left=25, top=15, right=15)
+                        pdf.set_auto_page_break(auto=True, margin=15)
+    
+                        # --- AJOUT DU LOGO ---
+                        pdf.image("Logo.png", x=170, y=10, w=25)
+                        pdf.ln(30)
+    
+                        # Couleurs
+                        NAVY   = (26, 39, 68)
+                        OR     = (201, 168, 76)
+                        GRIS   = (110, 110, 110)
+                        NOIR   = (30, 30, 30)
+    
+                        # --- AJOUT DU TITRE ET PRÉAMBULE ---
+                        pdf.set_text_color(*NAVY) 
+                        pdf.set_font("helvetica", "B", 14)
+                        pdf.cell(0, 14, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE\nDES COMPTES DE COPROPRIETE", align='C', new_x="LMARGIN", new_y="NEXT")
+                        pdf.ln(4)
+                        pdf.set_draw_color(*OR)
+                        pdf.set_line_width(0.5)
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(20)
+                        
+                        # 1. Préambule
+                        pdf.set_font("helvetica", 11)
+                        pdf.set_text_color(*NOIR)
+                        texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
+                        pdf.multi_cell(0, 6, texte_preambule)
+                                            
+                        # Disclaimer
+                        pdf.ln(10)
+                        pdf.set_text_color(*GRIS)
+                        pdf.set_font("helvetica", "I", 9)
+                        texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
+                        pdf.multi_cell(0, 5, texte_disclaimer)
+                        
+                        # On réinitialise la couleur et la police pour la suite
+                        pdf.set_text_color(*NOIR)
+                        pdf.set_font("helvetica", size=11)
+    
+                        # Ligne de séparation
+                        pdf.set_draw_color(*OR)
+                        pdf.set_line_width(0.5)
+                        pdf.line(25, pdf.get_y(), 195, pdf.get_y())
+                        pdf.ln(10)
                                         
-                    # Disclaimer
-                    pdf.ln(10)
-                    pdf.set_text_color(*GRIS)
-                    pdf.set_font("helvetica", "I", 9)
-                    texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
-                    pdf.multi_cell(0, 5, texte_disclaimer)
-                    
-                    # On réinitialise la couleur et la police pour la suite
-                    pdf.set_text_color(*NOIR)
-                    pdf.set_font("helvetica", size=11)
-
-                    # Ligne de séparation
-                    pdf.set_draw_color(*OR)
-                    pdf.set_line_width(0.5)
-                    pdf.line(25, pdf.get_y(), 195, pdf.get_y())
-                    pdf.ln(10)
-                                    
-                    # Titre de la section IA
-                    pdf.set_font("helvetica", "B", 14)
-                    pdf.set_text_color(*NAVY)
-                    pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
-                    pdf.ln(2)
-                    
-                    # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                    texte_final = (synthese_texte
-                        .replace(''', "'").replace(''', "'")
-                        .replace('"', '"').replace('"', '"')
-                        .replace('–', '-').replace('—', '-')
-                        .replace('…', '...').replace('•', '-')
-                        .replace('€', ' EUR').replace('²', '2')
-                        .replace('\u00a0', ' ')  # espace insécable
-                        .replace('—', '-')
-                    )
-                    texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
-
-                    # On continue sur la même page ou la suivante automatiquement
-                    pdf.multi_cell(0, 6, texte_final, markdown=True)
-
-                    # --- ANNEXES : Résultat brut des contrôles comptables ---
-                    pdf.add_page()
-                    pdf.set_font("helvetica", "B", 14)
-                    pdf.set_text_color(*NAVY)
-                    pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
-                    pdf.ln(4)
-                    pdf.set_draw_color(*OR)
-                    pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(6)
-                    
-                    pdf.set_font("courier", size=10)
-                    pdf.set_text_color(*NOIR)
-                    texte_annexes = (rapport_final
-                        .replace('€', ' EUR')
-                        .replace('–', '-').replace('—', '-')
-                        .replace(''', "'").replace(''', "'")
-                        .replace('"', '"').replace('"', '"')
-                        .replace('…', '...').replace('\u00a0', ' ')
-                    )
-                    pdf.multi_cell(0, 4.5, texte_annexes)
- 
-                    st.session_state["pdf_synthese"] = bytes(pdf.output())
-                    st.session_state["synthese_texte"] = synthese_texte
- 
-                except Exception as e:
-                    if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
-                        st.stop()
-                    elif "503" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence lors de la génération du rapport. Réessayez un peu plus tard.")
-                        st.stop()
-                    st.session_state["pdf_synthese"] = None
-                    st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
+                        # Titre de la section IA
+                        pdf.set_font("helvetica", "B", 14)
+                        pdf.set_text_color(*NAVY)
+                        pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
+                        pdf.ln(2)
+                        
+                        # Nettoyage du texte pour éviter les erreurs d'encodage communes
+                        texte_final = (synthese_texte
+                            .replace(''', "'").replace(''', "'")
+                            .replace('"', '"').replace('"', '"')
+                            .replace('–', '-').replace('—', '-')
+                            .replace('…', '...').replace('•', '-')
+                            .replace('€', ' EUR').replace('²', '2')
+                            .replace('\u00a0', ' ')  # espace insécable
+                            .replace('—', '-')
+                        )
+                        texte_final = re.sub(r'(?m)^\s*\*\s+', '  - ', texte_final)
+    
+                        # On continue sur la même page ou la suivante automatiquement
+                        pdf.multi_cell(0, 6, texte_final, markdown=True)
+    
+                        # --- ANNEXES : Résultat brut des contrôles comptables ---
+                        pdf.add_page()
+                        pdf.set_font("helvetica", "B", 14)
+                        pdf.set_text_color(*NAVY)
+                        pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
+                        pdf.ln(4)
+                        pdf.set_draw_color(*OR)
+                        pdf.set_line_width(0.5)
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(6)
+                        
+                        pdf.set_font("courier", size=10)
+                        pdf.set_text_color(*NOIR)
+                        texte_annexes = (rapport_final
+                            .replace('€', ' EUR')
+                            .replace('–', '-').replace('—', '-')
+                            .replace(''', "'").replace(''', "'")
+                            .replace('"', '"').replace('"', '"')
+                            .replace('…', '...').replace('\u00a0', ' ')
+                        )
+                        pdf.multi_cell(0, 4.5, texte_annexes)
+     
+                        st.session_state["pdf_synthese"] = bytes(pdf.output())
+                        st.session_state["synthese_texte"] = synthese_texte
+     
+                    except Exception as e:
+                        if "429" in str(e) or "quota" in str(e).lower():
+                            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
+                            st.stop()
+                        elif "503" in str(e):
+                            if attempt < MAX_RETRIES - 1:
+                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                                time.sleep(WAIT_SECONDS)
+                            else:
+                                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence lors de la génération du rapport. Réessayez plus tard.")
+                                st.stop()
+    
+                        st.session_state["pdf_synthese"] = None
+                        st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
 
                 
                 progress_bar.progress(90)
