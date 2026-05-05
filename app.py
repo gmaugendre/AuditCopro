@@ -1166,7 +1166,7 @@ OR     = "rgb(201, 168, 76)"
 GRIS   = "rgb(110, 110, 110)"
 NOIR   = "rgb(30, 30, 30)"
 
-col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
+col_texte, col_logo = st.columns([8, 1], vertical_alignment="center")
 
 with col_texte:
     st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">L\'expert digital d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
