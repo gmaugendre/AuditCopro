@@ -1174,7 +1174,7 @@ with col_texte:
     #st.subheader("*Conseils syndicaux : reprenez le contrôle !*")
 
     st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">Assistant d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: {NAVY}; margin-top: 0;">Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: {OR}; margin-top: 0;">Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: {OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
