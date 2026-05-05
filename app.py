@@ -1169,12 +1169,8 @@ NOIR   = "rgb(30, 30, 30)"
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
-    #st.title("Assistant d'analyse des comptes de copropriété")
-    #st.subheader("Automatique. Immédiat. Confidentiel.")
-    #st.subheader("*Conseils syndicaux : reprenez le contrôle !*")
-
-    st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">Assistant d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: {OR}; margin-top: 0;">Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">L'expert digital d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: {OR}; margin-top: 0;">Simple. Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: {OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
@@ -1332,7 +1328,7 @@ with col2:
                         # Disclaimer
                         pdf.set_text_color(*GRIS)
                         pdf.set_font("helvetica", "I", 10)
-                        texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant informatique conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
+                        texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant digital conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                         pdf.multi_cell(0, 5, texte_disclaimer)
                         pdf.ln(10)
                         
@@ -1488,6 +1484,6 @@ st.markdown("---")
 st.markdown(" ###### Les comptes de copropriété sont souvent abscons pour les non-spécialistes, peuvent présenter des erreurs et manquer de transparence ; un grand livre peut comporter plus d'une centaine de pages d'écritures et les conseils syndicaux disposent de peu de moyens ou d'expertise pour assurer leur mission de contrôle des comptes.")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.markdown("---")
-st.caption(" ###### Disclaimer : Cette application est un assistant informatique conçue pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes.")
+st.caption(" ###### Disclaimer : Cette application est un assistant digital conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes.")
 st.caption(" ###### Protection des données : aucune donnée n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
 st.caption(" ###### Tous droits réservés.")
