@@ -116,8 +116,8 @@ def convert_pdf_to_excel(pdf_path):
                     st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
-                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
-                st.stop()
+                    st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                    st.stop()
             else:
                 st.error(f" Erreur technique : {e}")
             
@@ -174,8 +174,8 @@ def extract_releve_data(pdf_path):
                     st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
-                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
-                st.stop()
+                    st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                    st.stop()
             else:
                 st.error(f" Erreur technique : {e}")
             
@@ -255,8 +255,8 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
                     st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
-                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
-                st.stop()
+                    st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                    st.stop()
             else:
                 st.error(f" Erreur technique : {e}")
     return {}
@@ -1400,6 +1400,8 @@ with col2:
                             else:
                                 st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                                 st.stop()
+                        else:
+                            st.error(f" Erreur technique : {e}")
     
                         st.session_state["pdf_synthese"] = None
                         st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
