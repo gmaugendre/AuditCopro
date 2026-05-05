@@ -105,6 +105,10 @@ def convert_pdf_to_excel(pdf_path):
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
+            st.stop()
+        elif "521" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
+            st.stop()
         else:
             st.error(f" Erreur technique : {e}")
     return pd.DataFrame()
@@ -153,6 +157,10 @@ def extract_releve_data(pdf_path):
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
+            st.stop()
+        elif "521" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement des relevés bancaires. Réessayez un peu plus tard.")
+            st.stop()
         else:
             st.error(f" Erreur technique : {e}")
     return pd.DataFrame()
@@ -225,6 +233,10 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     except Exception as e:
         if "429" in str(e) or "quota" in str(e).lower():
             st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+            st.stop()
+        elif "521" in str(e) or "quota" in str(e).lower():
+            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du contrat. Réessayez un peu plus tard.")
+            st.stop()
         else:
             st.error(f" Erreur technique : {e}")
         return {}
@@ -1314,9 +1326,16 @@ with col2:
                     st.session_state["synthese_texte"] = synthese_texte
  
                 except Exception as e:
+                    if "429" in str(e) or "quota" in str(e).lower():
+                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+                        st.stop()
+                    elif "521" in str(e) or "quota" in str(e).lower():
+                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du contrat. Réessayez un peu plus tard.")
+                        st.stop()
                     st.session_state["pdf_synthese"] = None
                     st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
- 
+
+                
                 progress_bar.progress(90)
                 
                 # --- GÉNÉRATION DU PDF GRAPHIQUE --- (désactivé)
