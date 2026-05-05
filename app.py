@@ -35,8 +35,8 @@ GEMINI_MODEL="gemini-2.5-flash"
 THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
-MAX_RETRIES = 3
-WAIT_SECONDS = 60
+MAX_RETRIES = 10
+WAIT_SECONDS = 30
 
 ##############################################################################################################################################################"
 
@@ -66,107 +66,119 @@ def merge_pdfs(uploaded_files, sub):
 # --- FONCTIONS D'EXTRACTION ---
 
 def convert_pdf_to_excel(pdf_path):
-    try:
-        prompt = """Agis comme un extracteur de données comptables de haute précision.
-        Analyse ce fichier PDF et extrais chaque écriture comptable.
-        Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
-        Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
-        Si les colonnes NUMERO_COMPTE ou NOM_COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
-        Si les colonnes CODE_JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
-        Mets les en-têtes des colonnes NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
-        Les dates doivent être au format date JJ/MM/AAAA.
-        Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
-        Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
-        Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
-
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                prompt
-            ],
-            config=types.GenerateContentConfig(response_mime_type="application/json")
-        )
-
-        # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
-        json_propre = repair_json(response.text)
-        data = json.loads(json_propre)
-        if isinstance(data, list):
-            df = pd.DataFrame(data)
-        elif isinstance(data, dict):
-            # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
-            df = pd.DataFrame([data])
-        else:
-            raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
-
-        if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
-        if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
-        if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
-        return df
-        
-    except Exception as e:
-        if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors du traitement du Grand livre. Réessayez demain.")
-            st.stop()
-        elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence lors du traitement du Grand livre. Réessayez un peu plus tard.")
-            st.stop()
-        else:
-            st.error(f" Erreur technique : {e}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            prompt = """Agis comme un extracteur de données comptables de haute précision.
+            Analyse ce fichier PDF et extrais chaque écriture comptable.
+            Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
+            Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
+            Si les colonnes NUMERO_COMPTE ou NOM_COMPTE ne sont pas indiquées pour chaque écriture dans le fichier source, va chercher les informations dans l'en-tête de chaque bloc.
+            Si les colonnes CODE_JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
+            Mets les en-têtes des colonnes NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
+            Les dates doivent être au format date JJ/MM/AAAA.
+            Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
+            Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
+            Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
+    
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                    prompt
+                ],
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+    
+            # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
+            json_propre = repair_json(response.text)
+            data = json.loads(json_propre)
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+            elif isinstance(data, dict):
+                # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
+                df = pd.DataFrame([data])
+            else:
+                raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
+    
+            if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
+            if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
+            if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
+            return df
+            
+        except Exception as e:
+            if "429" in str(e):
+                st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne. Réessayez demain.")
+                st.stop()
+            elif "503" in str(e):
+                if attempt < MAX_RETRIES - 1:
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(WAIT_SECONDS)
+                else:
+                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                st.stop()
+            else:
+                st.error(f" Erreur technique : {e}")
+            
     return pd.DataFrame()
 
 def extract_releve_data(pdf_path):
-    try:
-        prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction.
-                    Structure des colonnes : DATE | LIBELLE | DEBIT | CREDIT. Affiche ces 4 mots d'en-tête de colonnes dans la première ligne uniquement.
-                    Règles impératives :
-                    Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
-                    Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
-                    Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
-                    Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
-                    Format de date : Utilise le format JJ/MM/AAAA.
-                    SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
-                    DATE (JJ/MM/AAAA), LIBELLE, DEBIT, CREDIT.
-                    N'affiche aucun texte avant ou après le JSON."""
-
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                prompt
-            ],
-            config=types.GenerateContentConfig(response_mime_type="application/json")
-        )
-
-        # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
-        json_propre = repair_json(response.text)
-        data = json.loads(json_propre)
-        if isinstance(data, list):
-            df = pd.DataFrame(data)
-        elif isinstance(data, dict):
-            # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
-            df = pd.DataFrame([data])
-        else:
-            raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
-
-        if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
-        if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
-        if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
-        return df
-
-    except Exception as e:
-        if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors du traitement des relevés bancaires. Réessayez demain.")
-            st.stop()
-        elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence lors du traitement des relevés bancaires. Réessayez un peu plus tard.")
-            st.stop()
-        else:
-            st.error(f" Erreur technique : {e}")
+    for attempt in range(MAX_RETRIES):
+        try:
+            prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction.
+                        Structure des colonnes : DATE | LIBELLE | DEBIT | CREDIT. Affiche ces 4 mots d'en-tête de colonnes dans la première ligne uniquement.
+                        Règles impératives :
+                        Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
+                        Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
+                        Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
+                        Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
+                        Format de date : Utilise le format JJ/MM/AAAA.
+                        SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
+                        DATE (JJ/MM/AAAA), LIBELLE, DEBIT, CREDIT.
+                        N'affiche aucun texte avant ou après le JSON."""
+    
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                    prompt
+                ],
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+    
+            # Réparation du JSON en cas d'erreur de formatage (gestion des guillemets/virgules mal placés)
+            json_propre = repair_json(response.text)
+            data = json.loads(json_propre)
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+            elif isinstance(data, dict):
+                # Si Gemini renvoie un dictionnaire au lieu d'une liste, on essaie de trouver la clé qui contient la liste ou on l'encapsule
+                df = pd.DataFrame([data])
+            else:
+                raise ValueError("Le format JSON reçu n'est ni une liste ni un dictionnaire")
+    
+            if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
+            if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
+            if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
+            return df
+    
+        except Exception as e:
+            if "429" in str(e):
+                st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne. Réessayez demain.")
+                st.stop()
+            elif "503" in str(e):
+                if attempt < MAX_RETRIES - 1:
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(WAIT_SECONDS)
+                else:
+                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                st.stop()
+            else:
+                st.error(f" Erreur technique : {e}")
+            
     return pd.DataFrame()
 
 
@@ -223,27 +235,31 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     4. ABSENCE : Si un tarif n'est pas mentionné ou si la prestation est gratuite/incluse, inscris 0.0.
     5. FORMAT : Retourne UNIQUEMENT un objet JSON dont les clés sont celles de ma grille.
     """
-
-    try:
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[
-                types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
-                prompt
-            ],
-            config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
-        return json.loads(response.text)
-    except Exception as e:
-        if "429" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
-            st.stop()
-        elif "503" in str(e) or "quota" in str(e).lower():
-            st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du contrat. Réessayez un peu plus tard.")
-            st.stop()
-        else:
-            st.error(f" Erreur technique : {e}")
-        return {}
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+                    prompt
+                ],
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+                )
+            return json.loads(response.text)
+        except Exception as e:
+            if "429" in str(e):
+                st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne. Réessayez demain.")
+                st.stop()
+            elif "503" in str(e):
+                if attempt < MAX_RETRIES - 1:
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(WAIT_SECONDS)
+                else:
+                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
+                st.stop()
+            else:
+                st.error(f" Erreur technique : {e}")
+    return {}
 
 
 ##############################################################################################################################################################"
@@ -1374,15 +1390,15 @@ with col2:
                         st.session_state["synthese_texte"] = synthese_texte
      
                     except Exception as e:
-                        if "429" in str(e) or "quota" in str(e).lower():
-                            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
+                        if "429" in str(e):
+                            st.error("🚨 QUOTA ÉPUISÉ : Le moteur a atteint sa limite quotidienne. Réessayez demain.")
                             st.stop()
                         elif "503" in str(e):
                             if attempt < MAX_RETRIES - 1:
                                 st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                                 time.sleep(WAIT_SECONDS)
                             else:
-                                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence lors de la génération du rapport. Réessayez plus tard.")
+                                st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
                                 st.stop()
     
                         st.session_state["pdf_synthese"] = None
