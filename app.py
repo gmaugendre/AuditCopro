@@ -276,14 +276,14 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             trop_payes = synthese_401[synthese_401['SOLDE'] < -1.00]
             if not trop_payes.empty:
                 for _, row in trop_payes.iterrows():
-                    r.append(f"    {row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
+                    r.append(f"{row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
                     total_anomalies += abs(row['SOLDE'])
             else:
                 r.append("    Aucun trop-payé détecté.")
         else:
             r.append("    Aucun fournisseur détecté.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des trop-payés.")
+        r.append("Données insuffisantes pour l'analyse des trop-payés.")
 
     # --- SECTION B : DOUBLONS ---
     r.append("\n" + "="*80)
@@ -299,7 +299,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         else:
             r.append("    Aucun doublon détecté.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des doublons.")
+        r.append("Données insuffisantes pour l'analyse des doublons.")
 
     # --- SECTION C : IMPAYÉS FOURNISSEURS ---
     r.append("\n" + "="*80)
@@ -320,7 +320,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             alertes_impayes.append(f)
         if alertes_impayes:
             for a in alertes_impayes[:10]:
-                r.append(f"    {a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
+                r.append(f"a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
                 total_anomalies += a['CREDIT']
         else:
             r.append("    Aucune facture ancienne en attente.")
@@ -377,16 +377,16 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 
             if match.empty:
                 d_rej_str = date_rej.strftime('%d/%m/%Y') if pd.notnull(date_rej) else "N/A"
-                r.append(f" REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
+                r.append(f"REJET NON RÉPERCUTÉ : {d_rej_str} | {montant_rej:.2f}€ | {rej['LIBELLE']}")
                 nb_alertes_rejets += 1
                 # total_anomalies += montant_rej (double comptage avec le rapprochement bancaire complet sinon)
                 
         if nb_alertes_rejets == 0 and not rejets_detectes.empty:
-            r.append(" Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
+            r.append("Tous les rejets bancaires détectés ont été correctement imputés en comptabilité.")
         elif rejets_detectes.empty:
-            r.append(" Aucun rejet bancaire détecté sur la période.")
+            r.append("Aucun rejet bancaire détecté sur la période.")
     else:
-        r.append(" Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
+        r.append("Données insuffisantes pour l'analyse des rejets (colonnes manquantes).")
 
 
 
@@ -402,12 +402,12 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 solde = df_attente['CREDIT'].sum() - df_attente['DEBIT'].sum()
                 if abs(solde) > 5.00:
                     type_solde = "CRÉDITEUR" if solde > 0 else "DÉBITEUR"
-                    r.append(f"    COMPTE {racine} : Solde significatif de {abs(solde):.2f}€ ({type_solde})")
+                    r.append(f"COMPTE {racine} : Solde significatif de {abs(solde):.2f}€ ({type_solde})")
                     total_anomalies += abs(solde)
                     if solde > 0:
-                        r.append("       Solde Créditeur élevé : La copropriété détient une dette (sommes non affectées).")
+                        r.append("   Solde Créditeur élevé : La copropriété détient une dette (sommes non affectées).")
                     else:
-                        r.append("       Solde Débiteur élevé : Fonds avancés sans justification de dépense.")
+                        r.append("   Solde Débiteur élevé : Fonds avancés sans justification de dépense.")
                 else:
                     r.append(f"    COMPTE {racine} : Le compte est globalement soldé.")
 
@@ -422,7 +422,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             else:
                 r.append(f"    COMPTE {racine} : Aucun mouvement détecté.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des comptes d'attente.")
+        r.append("Données insuffisantes pour l'analyse des comptes d'attente.")
 
     # --- SECTION F : ANALYSE DES TIERS (461 & 462) ---
     r.append("\n" + "="*80)
@@ -435,7 +435,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             if not df_tiers.empty:
                 solde_net = df_tiers['DEBIT'].sum() - df_tiers['CREDIT'].sum()
                 if racine == '461':
-                    r.append(" Compte 461 — Débiteurs divers : doit normalement être débiteur (sommes à recevoir).")
+                    r.append("Compte 461 — Débiteurs divers : doit normalement être débiteur (sommes à recevoir).")
                     if solde_net < -1.00:
                         r.append(f"    ANOMALIE : Solde CRÉDITEUR de {abs(solde_net):.2f}€ (illogique pour ce compte).")
                     else:
@@ -462,7 +462,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             else:
                 r.append(f"    COMPTE {racine} : Aucun mouvement détecté.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des tiers.")
+        r.append("Données insuffisantes pour l'analyse des tiers.")
 
 
     
@@ -526,14 +526,14 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         nonlocal total_anomalies
 
         if df_gl_sub.empty and df_bk_sub.empty:
-            r.append(f"    Aucune écriture à rapprocher pour les {label_gl.lower()}.")
+            r.append(f"Aucune écriture à rapprocher pour les {label_gl.lower()}.")
             return
 
         if df_gl_sub.empty or df_bk_sub.empty:
             if not df_gl_sub.empty:
-                r.append(f"    TOUTES les écritures de {label_gl} sont absentes en banque.")
+                r.append(f"TOUTES les écritures de {label_gl} sont absentes en banque.")
             if not df_bk_sub.empty:
-                r.append(f"    TOUTES les écritures de {label_bk} sont absentes en comptabilité.")
+                r.append(f"TOUTES les écritures de {label_bk} sont absentes en comptabilité.")
             return
 
         gl_v = df_gl_sub[[col_gl_val, 'DATE', 'LIBELLE']].reset_index(drop=True).values
@@ -622,7 +622,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
         # --- Alertes délais (matches 1-to-1 hors fenêtre) ---
         if alertes_dates:
-            r.append(f"    ÉCARTS DE DATES ANORMAUX (> {DAYS_WINDOW} jours) :")
+            r.append(f"ÉCARTS DE DATES ANORMAUX (> {DAYS_WINDOW} jours) :")
             for a in sorted(alertes_dates,
                             key=lambda x: x['date_gl'] if pd.notnull(x['date_gl'])
                                           else pd.Timestamp.min):
@@ -634,7 +634,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
         # --- Groupements réconciliés ---
         if groupes_detectes:
-            r.append(f"    ÉCRITURES GROUPÉES RÉCONCILIÉES ({len(groupes_detectes)}) :")
+            r.append(f"ÉCRITURES GROUPÉES RÉCONCILIÉES ({len(groupes_detectes)}) :")
             for g in sorted(groupes_detectes,
                             key=lambda x: x['bk_date'] if pd.notnull(x['bk_date'])
                                           else pd.Timestamp.min):
@@ -652,31 +652,31 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
-            r.append(f"    PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
+            r.append(f"PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
             for i in sorted(absent_banque,
                             key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
                                             else pd.Timestamp.min):
                 d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
-                r.append(f"      - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
+                r.append(f"    - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
                 total_anomalies += gl_v[i, 0]
 
         # --- Anomalies résiduelles : présence banque / absence compta ---
         absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
-            r.append(f"    PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
+            r.append(f"PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
             for j in sorted(absent_compta,
                             key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1])
                                             else pd.Timestamp.min):
                 d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
-                r.append(f"      - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
+                r.append(f"    - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
                 total_anomalies += bk_v[j, 0]
 
         # --- Conclusion ---
         if not any([alertes_dates, groupes_detectes, absent_banque, absent_compta]):
-            r.append(f"    Rapprochement parfait pour les {label_gl.lower()}.")
+            r.append(f"Rapprochement parfait pour les {label_gl.lower()}.")
         elif not absent_banque and not absent_compta:
             r.append(
-                f"    Rapprochement complet "
+                f"Rapprochement complet "
                 f"(dont {len(groupes_detectes)} écriture(s) groupée(s) réconciliée(s))."
             )
 
@@ -708,7 +708,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         effectuer_rapprochement_complet(gl_d, bk_d, "Décaissements", "Banque", "CREDIT", "DEBIT")
 
     else:
-        r.append("    Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
+        r.append("Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
 
 
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
@@ -730,18 +730,18 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 suspects = stats_fournisseurs[stats_fournisseurs['NB_FACTURES'] <= 3].sort_values('TOTAL_ANNUEL', ascending=False)
                 
                 if not suspects.empty:
-                    r.append(f"    {len(suspects)} fournisseur(s) à vérifier (peu d'activité annuelle) :")
+                    r.append(f"{len(suspects)} fournisseur(s) à vérifier (peu d'activité annuelle) :")
                     for _, s in suspects.iterrows():
                         d_str = s['DERNIERE_DATE'].strftime('%d/%m/%Y') if pd.notnull(s['DERNIERE_DATE']) else "Inconnue"
-                        r.append(f"      - {s['NOM'][:25]:<25} | {s['NB_FACTURES']} fact. | Total: {s['TOTAL_ANNUEL']:>8.2f}€ | Max: {s['MONTANT_MAX']:>8.2f}€ (Dernière: {d_str})")
+                        r.append(f"    - {s['NOM'][:25]:<25} | {s['NB_FACTURES']} fact. | Total: {s['TOTAL_ANNUEL']:>8.2f}€ | Max: {s['MONTANT_MAX']:>8.2f}€ (Dernière: {d_str})")
                 else:
-                    r.append("    Aucun fournisseur occasionnel détecté.")
+                    r.append("Aucun fournisseur occasionnel détecté.")
             else:
-                r.append("    Aucun mouvement de facture (crédit) détecté pour les fournisseurs.")
+                r.append("Aucun mouvement de facture (crédit) détecté pour les fournisseurs.")
         else:
-            r.append("    Aucun fournisseur détecté.")
+            r.append("Aucun fournisseur détecté.")
     else:
-        r.append("    Données insuffisantes pour l'analyse des fournisseurs.")
+        r.append("Données insuffisantes pour l'analyse des fournisseurs.")
 
     
     # --- SECTION I : CONTRÔLE DU FONDS DE TRAVAUX (LOI ALUR) ---
@@ -756,20 +756,20 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         solde_theorique_travaux = df_105['CREDIT'].sum() - df_105['DEBIT'].sum() if not df_105.empty else 0
         solde_reel_placement = df_502['DEBIT'].sum() - df_502['CREDIT'].sum() if not df_502.empty else 0
         
-        r.append(f"    Réserves travaux appelées (105) : {solde_theorique_travaux:.2f}€")
-        r.append(f"    Placement réel sur Livret (502)  : {solde_reel_placement:.2f}€")
+        r.append(f"Réserves travaux appelées (105) : {solde_theorique_travaux:.2f}€")
+        r.append(f"Placement réel sur Livret (502)  : {solde_reel_placement:.2f}€")
         
         ecart_placement = solde_theorique_travaux - solde_reel_placement
         if ecart_placement > 1.00:
-            r.append(f"    ANOMALIE : {ecart_placement:.2f}€ n'ont pas été virés sur le compte d'épargne !")
-            r.append(f"       Le syndic utilise cet argent pour financer le fonctionnement courant.")
+            r.append(f"ANOMALIE : {ecart_placement:.2f}€ n'ont pas été virés sur le compte d'épargne !")
+            r.append(f"Le syndic utilise cet argent pour financer le fonctionnement courant.")
             total_anomalies += ecart_placement
         elif ecart_placement < -100.00:
             r.append(f"    Sur-placement : {abs(ecart_placement):.2f}€ de plus que prévu sur le Livret.")
         else:
-            r.append("    Parfaite cohérence : Le fonds de travaux est intégralement placé.")
+            r.append("Parfaite cohérence : Le fonds de travaux est intégralement placé.")
     else:
-        r.append("    Données insuffisantes pour l'analyse du fonds de travaux.")
+        r.append("Données insuffisantes pour l'analyse du fonds de travaux.")
 
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
     r.append("\n" + "="*80)
@@ -778,7 +778,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append(" L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
     r.append("Tarifs extraits du contrat du syndic :")
     for cle, valeur in df_contrat.items():
-        r.append(f"      - {cle:<35} : {valeur:.2f} EUR")
+        r.append(f"    - {cle:<35} : {valeur:.2f} EUR")
     r.append("")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
@@ -792,8 +792,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         if tarif_forfait_contrat > 0:
             total_paye_6211 = df_6211['DEBIT'].sum()
             if total_paye_6211 > (tarif_forfait_contrat * 1.02): # Tolérance de 2% pour l'inflation
-                r.append(f"    SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
-                r.append(f"       Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
+                r.append(f"SURFACTURATION FORFAIT : Le total facturé au compte 6211 est de {total_paye_6211:.2f}€.")
+                r.append(f"Le contrat prévoit un forfait annuel de {tarif_forfait_contrat:.2f}€.")
                 anomalies_detectees += 1
                 total_anomalies += max(0, total_paye_6211 - tarif_forfait_contrat)
             
@@ -825,8 +825,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                         tarif_contrat = df_contrat.get(cle_contrat, 0.0)
     
                         if tarif_contrat == 0:
-                            r.append(f"    ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
-                            r.append(f"       Prestation non tarifée ou incluse dans le forfait selon le contrat.")
+                            r.append(f"ALERTE : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"Prestation non tarifée ou incluse dans le forfait selon le contrat.")
                             anomalies_detectees += 1
                             total_anomalies += montant_paye
                             
@@ -834,23 +834,23 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                         elif cle_contrat == "vacation_horaire":
                             if montant_paye > (tarif_contrat + 0.10):
                                 n_heures = montant_paye / tarif_contrat
-                                r.append(f"    INFO : Vacation détectée ({date_str}) pour {montant_paye}€.")
-                                r.append(f"       Cela correspond à {n_heures:.2f} heure(s) au tarif contractuel de {tarif_contrat}€/h.")
+                                r.append(f"INFO : Vacation détectée ({date_str}) pour {montant_paye}€.")
+                                r.append(f"Cela correspond à {n_heures:.2f} heure(s) au tarif contractuel de {tarif_contrat}€/h.")
                             # On ne compte pas d'anomalie ici car le montant dépend du temps passé
                             
                         # Cas général : Frais fixes unitaires
                         elif montant_paye > (tarif_contrat + 0.10):
-                            r.append(f"    SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
-                            r.append(f"       Le tarif contractuel est de {tarif_contrat}€ TTC.")
+                            r.append(f"SURFACTURATION : '{libelle_brut}' ({date_str}) facturé {montant_paye}€.")
+                            r.append(f"Le tarif contractuel est de {tarif_contrat}€ TTC.")
                             anomalies_detectees += 1
                             total_anomalies += montant_paye
                             
                         break 
                         
             if anomalies_detectees == 0:
-                r.append("    Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
+                r.append("Aucun dépassement de tarif ou frais indu identifié sur les prestations particulières.")
     else:
-        r.append("    Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
+        r.append("Colonnes nécessaires manquantes dans 'df_gl' pour cette analyse.")        
 
     
     # --- SYNTHESE CHIFFREE DES ANOMALIES EN PROPRORTION DU BUDGET ---
@@ -860,18 +860,22 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     if budget > 0:
         ratio = (total_anomalies / budget) * 100
-        r.append(f"    Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
-        r.append(f"    Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
-        r.append(f"    Ratio anomalies / budget        : {ratio:>11.0f} %")
-        if ratio < 1:
-            r.append("    Appréciation : Niveau d'anomalies faible (< 1% du budget).")
+        r.append(f"Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
+        r.append(f"Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
+        r.append(f"Ratio anomalies / budget        : {ratio:>11.0f} %")
+        if ratio < 0.25:
+            r.append("Appréciation : [TRES FAIBLE] Aucune anomalie significative (< 0.25% du budget).")
+        elif ratio < 1:
+            r.append("Appréciation : [FAIBLE] Anomalies mineures (0.25% à 1% du budget).")
         elif ratio < 3:
-            r.append("    Appréciation : Niveau d'anomalies modéré (1% à 3% du budget). Vérifications recommandées.")
+            r.append("Appréciation : [MODERE] Niveau d'anomalies notable (1% à 3% du budget). Vérifications recommandées.")
+        elif ratio < 5:
+            r.append("Appréciation : [ELEVE] Risque significatif identifié (3% à 5% du budget). Contrôles approfondis nécessaires.")
         else:
-            r.append("    Appréciation : Niveau d'anomalies élevé (> 3% du budget). Contrôles approfondis nécessaires.")
+            r.append("Appréciation : [TRES ELEVE] Niveau d'anomalies critique (> 5% du budget). Action immédiate requise.")    
     else:
-        r.append("    Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
-        r.append(f"    Total des anomalies détectées : {total_anomalies:.2f} EUR")
+        r.append("Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
+        r.append(f"Total des anomalies détectées : {total_anomalies:.2f} EUR")
     
     r.append("\n" + "="*80 + "\nFIN DU RAPPORT")
 
