@@ -1144,8 +1144,8 @@ col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
     st.title("Assistant d'analyse des comptes de copropriété")
-    st.subheader("Conseils syndicaux : reprenez le contrôle !")
-    st.subheader("*Automatique. Immédiat. Confidentiel.*")
+    st.subheader("Automatique. Immédiat. Confidentiel.")
+    st.subheader("*Conseils syndicaux : reprenez le contrôle !*")
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
