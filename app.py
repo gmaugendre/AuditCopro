@@ -1327,10 +1327,10 @@ with col2:
  
                 except Exception as e:
                     if "429" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors du traitement du contrat. Réessayez demain.")
+                        st.error("🚨 QUOTA ÉPUISÉ : Le moteur IA a atteint sa limite quotidienne lors de la génération du rapport. Réessayez demain.")
                         st.stop()
                     elif "521" in str(e) or "quota" in str(e).lower():
-                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors du traitement du contrat. Réessayez un peu plus tard.")
+                        st.error("🚨 ACTIVITE EXCEPTIONNELLE : Le moteur IA a atteint ses capacités limites en raison d'une forte affluence lors de la génération du rapport. Réessayez un peu plus tard.")
                         st.stop()
                     st.session_state["pdf_synthese"] = None
                     st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
