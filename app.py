@@ -36,8 +36,8 @@ GEMINI_MODEL="gemini-2.5-flash"
 THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
-MAX_RETRIES = 10
-WAIT_SECONDS = 30
+MAX_RETRIES = 100
+WAIT_SECONDS = 5
 
 ##############################################################################################################################################################"
 
@@ -114,7 +114,7 @@ def convert_pdf_to_excel(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -172,7 +172,7 @@ def extract_releve_data(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -253,7 +253,7 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_SECONDS)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -1396,7 +1396,7 @@ with col2:
                             st.stop()
                         elif "503" in str(e):
                             if attempt < MAX_RETRIES - 1:
-                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
+                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_SECONDS} secondes... (essai {attempt + 1}/{MAX_RETRIES})")
                                 time.sleep(WAIT_SECONDS)
                             else:
                                 st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
