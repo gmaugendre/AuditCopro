@@ -1160,13 +1160,23 @@ def generer_rapport_graphique(df_gl):
 ##############################################################################################################################################################"
 
 # --- INTERFACE STREAMLIT ---
+# Couleurs
+NAVY   = (26, 39, 68)
+OR     = (201, 168, 76)
+GRIS   = (110, 110, 110)
+NOIR   = (30, 30, 30)
 
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
-    st.title("Assistant d'analyse des comptes de copropriété")
-    st.subheader("Automatique. Immédiat. Confidentiel.")
-    st.subheader("*Conseils syndicaux : reprenez le contrôle !*")
+    #st.title("Assistant d'analyse des comptes de copropriété")
+    #st.subheader("Automatique. Immédiat. Confidentiel.")
+    #st.subheader("*Conseils syndicaux : reprenez le contrôle !*")
+
+    st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">Assistant d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: {NAVY}; margin-top: 0;">Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: {OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
+
 with col_logo:
     # On affiche le logo à droite
     # use_container_width permet au logo de s'adapter à la petite colonne
@@ -1304,12 +1314,6 @@ with col2:
                         # --- AJOUT DU LOGO ---
                         pdf.image("Logo.png", x=170, y=10, w=25)
                         pdf.ln(30)
-    
-                        # Couleurs
-                        NAVY   = (26, 39, 68)
-                        OR     = (201, 168, 76)
-                        GRIS   = (110, 110, 110)
-                        NOIR   = (30, 30, 30)
     
                         # --- AJOUT DU TITRE ET PRÉAMBULE ---
                         pdf.set_text_color(*NAVY)
