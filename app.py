@@ -320,7 +320,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             alertes_impayes.append(f)
         if alertes_impayes:
             for a in alertes_impayes[:10]:
-                r.append(f"a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
+                r.append(f"{a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
                 total_anomalies += a['CREDIT']
         else:
             r.append("    Aucune facture ancienne en attente.")
