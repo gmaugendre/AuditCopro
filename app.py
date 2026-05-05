@@ -953,7 +953,7 @@ def generer_rapport_graphique(df_gl):
     pdf.add_page()
     
     # 1. En-tête Stylisé
-    pdf.set_fill_color(41, 128, 185) # Bleu "Expert"
+    pdf.set_fill_color(41, 128, 185) # Bleu
     pdf.rect(0, 0, 210, 45, 'F')
     pdf.set_font("helvetica", "B", 24)
     pdf.set_text_color(255, 255, 255)
@@ -1169,7 +1169,7 @@ NOIR   = "rgb(30, 30, 30)"
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
-    st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">L'expert digital d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h1 style="color: {NAVY}; margin-bottom: 0;">L'expert digital d'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: {OR}; margin-top: 0;">Simple. Automatique. Immédiat. Confidentiel.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: {OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
