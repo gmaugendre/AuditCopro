@@ -27,11 +27,9 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-#GEMINI_MODEL="gemini-2.5-flash"
-#API_KEY = st.secrets["GEMINI_API_KEY1"]
-#client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
-
 GEMINI_MODEL="gemini-2.5-flash-lite"
+#GEMINI_MODEL="gemini-2.5-flash"
+
 API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
@@ -1354,7 +1352,7 @@ with col2:
                         pdf.ln(20)
                         
                         # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                        texte_final = (synthese_texte
+                        texte_final = (str(synthese_texte)
                             .replace("’", "'").replace("‘", "'")
                             .replace("“", '"').replace("”", '"')
                             .replace("–", "-").replace("—", "-")
@@ -1382,7 +1380,7 @@ with col2:
                         
                         pdf.set_font("courier", size=10)
                         pdf.set_text_color(*NOIR)
-                        texte_annexes = (rapport_final
+                        texte_annexes = (str(rapport_final)
                             .replace("’", "'").replace("‘", "'")
                             .replace("“", '"').replace("”", '"')
                             .replace("–", "-").replace("—", "-")
