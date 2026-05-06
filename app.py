@@ -1311,43 +1311,43 @@ with col2:
                         pdf.ln(30)
     
                         # --- AJOUT DU TITRE ET PRÉAMBULE ---
-                        pdf.set_text_color(NAVY[0], NAVY[1], NAVY[2])
+                        pdf.set_text_color(26, 39, 68)
                         pdf.set_font("helvetica", "B", 14)
                         pdf.cell(0, 8, "RAPPORT DE SYNTHESE D'ANALYSE AUTOMATISEE", new_x="LMARGIN", new_y="NEXT", align='C')
                         pdf.cell(0, 8, "DES COMPTES DE COPROPRIETE", new_x="LMARGIN", new_y="NEXT", align='C')
                         pdf.ln(10)
-                        pdf.set_draw_color(OR[0], OR[1], OR[2])
+                        pdf.set_draw_color(201, 168, 76)
                         pdf.set_line_width(0.5)
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
                         pdf.ln(20)
                         
                         # 1. Préambule
                         pdf.set_font("helvetica", 11)
-                        pdf.set_text_color(NOIR[0], NOIR[1], NOIR[2])
+                        pdf.set_text_color(30,30,30)
                         texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
                         pdf.multi_cell(0, 6, texte_preambule)
                         pdf.ln(10)
          
                         # Disclaimer
-                        pdf.set_text_color(GRIS[0], GRIS[1], GRIS[2])
+                        pdf.set_text_color(110, 110, 110)
                         pdf.set_font("helvetica", "I", 10)
                         texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant digital conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                         pdf.multi_cell(0, 5, texte_disclaimer)
                         pdf.ln(10)
                         
                         # On réinitialise la couleur et la police pour la suite
-                        pdf.set_text_color(NOIR[0], NOIR[1], NOIR[2])
+                        pdf.set_text_color(30,30,30)
                         pdf.set_font("helvetica", size=11)
     
                         # Ligne de séparation
-                        pdf.set_draw_color(OR[0], OR[1], OR[2])
+                        pdf.set_draw_color(201, 168, 76)
                         pdf.set_line_width(0.5)
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
                         pdf.ln(20)
                                         
                         # Titre de la section IA
                         pdf.set_font("helvetica", "B", 14)
-                        pdf.set_text_color(NAVY[0], NAVY[1], NAVY[2])
+                        pdf.set_text_color(26, 39, 68)
                         pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
                         pdf.ln(20)
                         
@@ -1370,16 +1370,16 @@ with col2:
                         # --- ANNEXES : Résultat brut des contrôles comptables ---
                         pdf.add_page()
                         pdf.set_font("helvetica", "B", 14)
-                        pdf.set_text_color(NAVY[0], NAVY[1], NAVY[2])
+                        pdf.set_text_color(26, 39, 68)
                         pdf.cell(0, 12, "Annexes", new_x="LMARGIN", new_y="NEXT", align='C')
                         pdf.ln(10)
-                        pdf.set_draw_color(OR[0], OR[1], OR[2])
+                        pdf.set_draw_color(201, 168, 76)
                         pdf.set_line_width(0.5)
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
                         pdf.ln(20)
                         
                         pdf.set_font("courier", size=10)
-                        pdf.set_text_color(NOIR[0], NOIR[1], NOIR[2])
+                        pdf.set_text_color(30,30,30)
                         texte_annexes = (str(rapport_final)
                             .replace("’", "'").replace("‘", "'")
                             .replace("“", '"').replace("”", '"')
