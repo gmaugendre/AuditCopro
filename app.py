@@ -1175,7 +1175,7 @@ with col_texte:
 
 with col_logo:
     # On affiche le logo à droite
-    st.image("Logo.png", use_container_width=True)
+    st.image("Logo.png", width=300, use_container_width=True)
 st.markdown("---")
 
 # --- CHARGEMENT DES DONNEES ---
