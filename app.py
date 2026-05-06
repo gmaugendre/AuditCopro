@@ -31,7 +31,7 @@ if not os.path.exists(UPLOAD_DIR):
 #API_KEY = st.secrets["GEMINI_API_KEY1"]
 #client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
-GEMINI_MODEL="models/gemini-1.5-flash"
+GEMINI_MODEL="models/gemini-1.5-flash-latest"
 API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
