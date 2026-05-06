@@ -1166,11 +1166,11 @@ OR     = (201, 168, 76)
 GRIS   = (110, 110, 110)
 NOIR   = (30, 30, 30)
 
-col_texte, col_logo = st.columns([4, 1], vertical_alignment="center")
+col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
-    st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">L\'expert digital<br>d\'analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Simple. Automatique. Immédiat.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Analyse des comptes de copropriété</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">L\'expert digital. Simple. Automatique. Immédiat.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: rgb{OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
