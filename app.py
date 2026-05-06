@@ -19,6 +19,7 @@ matplotlib.use('Agg')  # Indispensable pour Streamlit
 import matplotlib.pyplot as plt
 import re
 import time
+import traceback
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
