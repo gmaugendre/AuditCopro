@@ -37,7 +37,7 @@ THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
 MAX_RETRIES = 2 #Nombre d'essais en tout pour chaque appel IA
-WAIT_MINUTES = 5 #Temps d'attente avant ré-essai en minutes
+WAIT_MINUTES = 3 #Temps d'attente avant ré-essai en minutes
 
 ##############################################################################################################################################################"
 
