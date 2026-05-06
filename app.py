@@ -30,8 +30,8 @@ if not os.path.exists(UPLOAD_DIR):
 API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
-GEMINI_MODEL="gemini-2.5-flash"
-#GEMINI_MODEL="gemini-2.0-flash"
+#GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_MODEL="gemini-1.5-flash"
 
 THRESHOLD_FUZZ=85
 
@@ -1413,7 +1413,7 @@ with col2:
                         st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
 
                 
-                # --- GÉNÉRATION DU PDF GRAPHIQUE --- (désactivé)
+                # --- GÉNÉRATION DU PDF DES GRAPHIQUES --- (désactivé)
                 # try:
                 #     nom_graphique = generer_rapport_graphique(gl_df)
                 #     with open(nom_graphique, "rb") as f:
