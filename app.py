@@ -1169,7 +1169,7 @@ col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
     st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Vérification des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">L\'expert digital. Simple. Automatique. Immédiat. Indépendant. Confidentiel.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">L\'expert digital. Simple, automatique, immédiat et indépendant.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: rgb{OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
