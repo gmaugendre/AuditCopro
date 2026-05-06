@@ -1415,13 +1415,12 @@ with col2:
  
                     st.session_state["pdf_synthese"] = bytes(pdf.output())
                     st.session_state["synthese_texte"] = synthese_texte
-                    pass
+                    
                 except Exception as e:
                     print(f"Erreur: {e}")
-                    traceback.print_exc()
-     
-                st.session_state["pdf_synthese"] = None
-                st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
+                    traceback.print_exc() 
+                    st.session_state["pdf_synthese"] = None
+                    st.session_state["synthese_texte"] = f"ERREUR : {str(e)}"
 
                 
                 # --- GÉNÉRATION DU PDF DES GRAPHIQUES --- (désactivé)
