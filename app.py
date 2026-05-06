@@ -30,7 +30,7 @@ if not os.path.exists(UPLOAD_DIR):
 GEMINI_MODEL="gemini-2.5-flash-lite"
 #GEMINI_MODEL="gemini-2.5-flash"
 
-API_KEY = st.secrets["GEMINI_API_KEY3"]
+API_KEY = st.secrets["GEMINI_API_KEY4"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 THRESHOLD_FUZZ=85
