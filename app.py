@@ -46,7 +46,7 @@ WAIT_MINUTES = 5 #Temps d'attente avant ré-essai en minutes
 def save_uploaded_file(uploaded_file, sub):
     p = Path(UPLOAD_DIR) / sub / uploaded_file.name
     p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "wb") as f: f.write(uploaded_file.getbuffer()) x
+    with open(p, "wb") as f: f.write(uploaded_file.getbuffer())
     return p
 
 # FONCTION DE FUSION DES RELEVES DE COMPTE PDF
