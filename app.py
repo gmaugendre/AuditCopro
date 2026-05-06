@@ -54,7 +54,7 @@ def merge_pdfs(uploaded_files, sub):
     merger = PdfWriter()
     for pdf in uploaded_files:
         merger.append(pdf)
-    
+    x=2
     output_path = Path(UPLOAD_DIR) / sub / "releves_fusionnes.pdf"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
