@@ -69,7 +69,7 @@ def merge_pdfs(uploaded_files, sub):
 def convert_pdf_to_excel(pdf_path):
     for attempt in range(MAX_RETRIES):
         try:
-            prompt = """Agis comme un pur extracteur de données comptables de haute précision. Concentre toi sur la structure des tableaux et ne cherche pas à comprendre la signification comptable des écritures.
+            prompt = """Agis comme un pur extracteur de données comptables de haute précision.
             Analyse ce fichier PDF et extrais chaque écriture comptable.
             Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
             Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
@@ -108,7 +108,15 @@ def convert_pdf_to_excel(pdf_path):
             if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
             if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
             if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
-            return df
+
+            
+            # --- TRI ---
+            # On s'assure que NUMERO_COMPTE est traité comme du texte (pour éviter les erreurs si certains sont alphanumériques)
+            if 'NUMERO_COMPTE' in df.columns and 'DATE' in df.columns:
+                df['NUMERO_COMPTE'] = df['NUMERO_COMPTE'].astype(str)
+                df = df.sort_values(by=['NUMERO_COMPTE', 'DATE'], ascending=[True, True])
+            
+            return df.reset_index(drop=True) # Reset de l'index pour une liste propre
             
         except Exception as e:
             if "429" in str(e):
@@ -129,7 +137,7 @@ def convert_pdf_to_excel(pdf_path):
 def extract_releve_data(pdf_path):
     for attempt in range(MAX_RETRIES):
         try:
-            prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction. Concentre toi sur la structure des tableaux.
+            prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction.
                         Structure des colonnes : DATE | LIBELLE | DEBIT | CREDIT. Affiche ces 4 mots d'en-tête de colonnes dans la première ligne uniquement.
                         Règles impératives :
                         Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
@@ -168,6 +176,14 @@ def extract_releve_data(pdf_path):
             if 'DEBIT' in df.columns: df['DEBIT'] = pd.to_numeric(df['DEBIT'], errors='coerce').fillna(0)
             if 'CREDIT' in df.columns: df['CREDIT'] = pd.to_numeric(df['CREDIT'], errors='coerce').fillna(0)
             if 'DATE' in df.columns: df['DATE'] = pd.to_datetime(df['DATE'], dayfirst=True, errors='coerce')
+
+            # --- TRI PAR DATE ---
+            if 'DATE' in df.columns: 
+                # Tri chronologique (du plus ancien au plus récent)
+                df = df.sort_values(by='DATE', ascending=True)
+                # Optionnel : réinitialiser l'index pour que les lignes soient numérotées de 0 à X dans l'ordre du tri
+                df = df.reset_index(drop=True)
+           
             return df
     
         except Exception as e:
@@ -237,7 +253,7 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
     1. SYNONYMES : Le syndic peut utiliser des termes différents. Analyse le sens pour remplir la bonne clé (ex: "Honoraires de base" -> "forfait_annuel").
     2. MONTANTS : Extrais uniquement des nombres (float). Si un tarif est au forfait + au lot, extrais la part fixe pour le forfait.
     3. TVA : Extrais toujours le montant TTC. Si seul le HT est écrit, calcule TTC = HT * 1.20.
-    4. ABSENCE : Si un tarif n'est pas mentionné ou si la prestation est gratuite/incluse, inscris 0.0.
+    4. ABSENCE : Si un tarif n'est pas mentionné ou si la prestation est gratuite/incluse, inscris 0.0. N'invente aucun chiffre.
     5. FORMAT : Retourne UNIQUEMENT un objet JSON dont les clés sont celles de ma grille.
     """
     for attempt in range(MAX_RETRIES):
@@ -1169,7 +1185,7 @@ col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
     st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Vérification des comptes de copropriété</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">L\'expert digital. Simple, automatique, immédiat et indépendant.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Votre expert digital. Simple, automatique, immédiat et indépendant.</h3>', unsafe_allow_html=True)
     st.markdown(f'<h3 style="color: rgb{OR};"><i>Conseils syndicaux : reprenez le contrôle !</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
@@ -1347,7 +1363,7 @@ with col2:
                     # Disclaimer
                     pdf.set_text_color(*GRIS)
                     pdf.set_font("helvetica", "I", size=10)
-                    texte_disclaimer = "Disclaimer:\nCet examen a été exécuté par un assistant digital (https://auditcopro.streamlit.app) conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
+                    texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant digital (https://auditcopro.streamlit.app) conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                     pdf.multi_cell(0, 5, texte_disclaimer)
                     pdf.ln(20)
                     
@@ -1363,7 +1379,7 @@ with col2:
                     pdf.set_text_color(*NOIR)
 
                     # Ligne de séparation
-                    pdf.ln(10)
+                    pdf.ln(5)
                     pdf.set_draw_color(*OR)
                     pdf.set_line_width(0.5)
                     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
