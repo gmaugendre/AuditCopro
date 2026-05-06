@@ -288,6 +288,10 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
 # --- MOTEUR D'AUDIT ---
 
 def generer_rapport_audit(df_gl, df_bank, df_contrat):
+    if df_gl is None or df_bank is None or df_contrat is None:
+        st.error("L'extraction des données a échoué. Impossible de générer le rapport.")
+        st.stop()
+        
     r = [] 
     date_min = df_gl['DATE'].min() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
