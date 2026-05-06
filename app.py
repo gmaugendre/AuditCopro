@@ -28,8 +28,8 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-GEMINI_MODEL="gemini-2.5-flash-lite"
 #GEMINI_MODEL="gemini-2.5-flash"
+GEMINI_MODEL="gemini-2.5-flash-lite"
 
 API_KEY = st.secrets["GEMINI_API_KEY4"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
@@ -297,10 +297,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     date_min = df_gl['DATE'].min() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     
-    r.append("=""="*79)
     r.append(f"RAPPORT D'AUDIT COMPTABLE - GÉNÉRÉ LE {datetime.now().strftime('%d/%m/%Y')}")
     r.append(f"Période analysée du {date_min.strftime('%d/%m/%Y')} au {date_ref.strftime('%d/%m/%Y')}")
-    r.append("=""="*79 + "\n")
+    r.append("="*79 + "\n")
 
     # --- BUDGET ET COMPTEUR D'ANOMALIES ---
     total_anomalies = 0.0
@@ -324,30 +323,57 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                     r.append(f"{row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
                     total_anomalies += abs(row['SOLDE'])
             else:
-                r.append("    Aucun trop-payé détecté.")
+                r.append("Aucun trop-payé détecté.")
         else:
-            r.append("    Aucun fournisseur détecté.")
+            r.append("Aucun fournisseur détecté.")
     else:
         r.append("Données insuffisantes pour l'analyse des trop-payés.")
 
+
+
     # --- SECTION B : DOUBLONS ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "=="*40)
     r.append("[SECTION B] ANALYSE DES DOUBLONS")
     r.append("Recherche des écritures de charges identiques (montant et compte) sur la période.")
     r.append("L'objectif est de détecter des saisies multiples d'une même facture.\n")
+
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
-        df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)]
+        # Filtrage des comptes de classe 6 avec débit > 0
+        df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)].copy()
+        
+        # Identification des doublons (keep=False pour garder toutes les occurrences)
         doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
+        
         if not doublons.empty:
-            r.append(f"    {len(doublons)//2} alertes de doublons potentiels identifiées.")
+            # Tri par montant et compte pour regrouper les doublons côte à côte
+            doublons = doublons.sort_values(by=['DEBIT', 'NUMERO_COMPTE'])
+            
+            r.append(f"{len(doublons)} lignes suspectes ({len(doublons)//2} paires ou plus).")
+            r.append("-" * 80)
+            # En-tête du petit tableau
+            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
+            r.append("-" * 80)
+            
+            for _, row in doublons.iterrows():
+                # Formatage de la date (sécurité si ce n'est pas un datetime)
+                date_str = row['DATE'].strftime('%d/%m/%Y') if hasattr(row['DATE'], 'strftime') else str(row['DATE'])
+                compte = str(row['NUMERO_COMPTE'])
+                montant = row['DEBIT']
+                libelle = str(row['LIBELLE'])[:40] # Tronqué pour l'alignement
+                
+                r.append(f"{compte:<10} | {date_str:<12} | {montant:>10.2f}€ | {libelle}")
+            
+            r.append("-" * 80)
             total_anomalies += doublons['DEBIT'].sum() / 2
         else:
-            r.append("    Aucun doublon détecté.")
+            r.append("Aucun doublon détecté.")
     else:
         r.append("Données insuffisantes pour l'analyse des doublons.")
 
+
+    
     # --- SECTION C : IMPAYÉS FOURNISSEURS ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION C] ANALYSE DES IMPAYÉS (> 3 MOIS)")
     r.append("Liste les factures en attente de paiement depuis plus de 90 jours.")
     r.append("Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
@@ -375,7 +401,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION D : COMPTES D'ATTENTE (471 & 472) ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION D] ANALYSE DYNAMIQUE DES COMPTES D'ATTENTE (471 & 472)")
     r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
     
@@ -440,7 +466,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION E : ANALYSE DES TIERS (461 & 462) ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
     r.append("Surveille les créances sur tiers et les dossiers au contentieux.")
     r.append("Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
@@ -483,7 +509,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     
     # --- SECTION F : RAPPROCHEMENT BANCAIRE COMPLET ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
     r.append("Compare ligne à ligne la banque et la comptabilité (Compte 512).")
     r.append("Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
@@ -729,7 +755,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     # --- SECTION G : REJETS BANCAIRES ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
     r.append("Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.\n")
 
@@ -790,7 +816,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
 
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION H] ANALYSE DES FOURNISSEURS OCCASIONNELS (< 4 écritures/an)")
     r.append("Isole les prestataires avec très peu d'activité. En copropriété, cela peut révéler des factures de complaisance ou des dépenses ponctuelles non mises en concurrence.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
@@ -822,7 +848,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION I : CONTRÔLE DU FONDS DE TRAVAUX (LOI ALUR) ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION I] CONTRÔLE DU FONDS DE TRAVAUX (COMPTES 105 & 502)")
     r.append("Vérifie que les sommes appelées pour les travaux (105) sont réellement transférées sur le compte d'épargne (502). Un écart indique une utilisation illégale de ces fonds pour la gestion courante.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
@@ -833,7 +859,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         solde_reel_placement = df_502['DEBIT'].sum() - df_502['CREDIT'].sum() if not df_502.empty else 0
         
         r.append(f"Réserves travaux appelées (105) : {solde_theorique_travaux:.2f}€")
-        r.append(f"Placement réel sur Livret (502)  : {solde_reel_placement:.2f}€")
+        r.append(f"Placement réel sur Livret (502) : {solde_reel_placement:.2f}€")
         
         ecart_placement = solde_theorique_travaux - solde_reel_placement
         if ecart_placement > 1.00:
@@ -850,7 +876,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
     r.append("Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
     r.append("L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
@@ -933,9 +959,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     
     # --- SYNTHESE CHIFFREE DES ANOMALIES EN PROPRORTION DU BUDGET ---
-    r.append("\n" + "=""="*79)
+    r.append("\n" + "="*79)
     r.append("[SYNTHÈSE CHIFFRÉE] RATIO D'ANOMALIES / BUDGET")
-    r.append("=""="*79)
+    r.append("="*79)
 
     if budget > 0:
         ratio = (total_anomalies / budget) * 100
@@ -956,7 +982,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
         r.append(f"Total des anomalies détectées : {total_anomalies:.2f} EUR")
     
-    r.append("\n" + "=""="*79 + "\nFIN DU RAPPORT")
+    r.append("\n" + "="*79 + "\nFIN DU RAPPORT")
 
     return "\n".join(r)
 
@@ -1350,12 +1376,12 @@ with col2:
                     # --- AJOUT DU TITRE ET PRÉAMBULE ---
                     pdf.set_text_color(*NAVY)
                     pdf.set_font("helvetica", "B", 14)
-                    pdf.cell(0, 8, "RAPPORT DE SYNTHESE DE CONTROLE AUTOMATISE", new_x="LMARGIN", new_y="NEXT", align='C')
+                    pdf.cell(0, 8, "RAPPORT DE CONTROLE AUTOMATISE", new_x="LMARGIN", new_y="NEXT", align='C')
                     pdf.cell(0, 8, "DES COMPTES DE COPROPRIETE", new_x="LMARGIN", new_y="NEXT", align='C')
                     pdf.ln(10)
                     pdf.set_draw_color(*OR)
                     pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
                     pdf.ln(20)
                     
                     # 1. Préambule
@@ -1387,7 +1413,7 @@ with col2:
                     pdf.ln(5)
                     pdf.set_draw_color(*OR)
                     pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
                     pdf.ln(10)
                     
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
@@ -1414,7 +1440,7 @@ with col2:
                     pdf.ln(10)
                     pdf.set_draw_color(*OR)
                     pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
                     pdf.ln(20)
                     
                     pdf.set_font("courier", size=10)
