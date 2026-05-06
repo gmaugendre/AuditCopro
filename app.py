@@ -69,7 +69,7 @@ def merge_pdfs(uploaded_files, sub):
 def convert_pdf_to_excel(pdf_path):
     for attempt in range(MAX_RETRIES):
         try:
-            prompt = """Agis comme un extracteur de données comptables de haute précision.
+            prompt = """Agis comme un pur extracteur de données comptables de haute précision. Concentre toi sur la structure des tableaux et ne cherche pas à comprendre la signification comptable des écritures.
             Analyse ce fichier PDF et extrais chaque écriture comptable.
             Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes.
             Extrait ces données dans excel en retenant uniquement les colonnes: NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT.
@@ -78,6 +78,7 @@ def convert_pdf_to_excel(pdf_path):
             Mets les en-têtes des colonnes NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
             Les dates doivent être au format date JJ/MM/AAAA.
             Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
+            Fais très attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
             Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
             Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
             Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
@@ -128,13 +129,14 @@ def convert_pdf_to_excel(pdf_path):
 def extract_releve_data(pdf_path):
     for attempt in range(MAX_RETRIES):
         try:
-            prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction.
+            prompt = """Agis comme un extracteur de données comptables de haute précision. Analyse ce fichier PDF et extrais chaque transaction. Concentre toi sur la structure des tableaux.
                         Structure des colonnes : DATE | LIBELLE | DEBIT | CREDIT. Affiche ces 4 mots d'en-tête de colonnes dans la première ligne uniquement.
                         Règles impératives :
                         Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
                         Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
                         Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
                         Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
+                        Fais très attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
                         Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
                         Format de date : Utilise le format JJ/MM/AAAA.
                         SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
@@ -274,10 +276,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     date_min = df_gl['DATE'].min() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     date_ref = df_gl['DATE'].max() if ('DATE' in df_gl.columns and not df_gl['DATE'].dropna().empty) else datetime.now()
     
-    r.append("="*75)
+    r.append("=""="*79)
     r.append(f"RAPPORT D'AUDIT COMPTABLE - GÉNÉRÉ LE {datetime.now().strftime('%d/%m/%Y')}")
     r.append(f"Période analysée du {date_min.strftime('%d/%m/%Y')} au {date_ref.strftime('%d/%m/%Y')}")
-    r.append("="*75 + "\n")
+    r.append("=""="*79 + "\n")
 
     # --- BUDGET ET COMPTEUR D'ANOMALIES ---
     total_anomalies = 0.0
@@ -289,8 +291,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     # --- SECTION A : TROP-PAYÉS ---
     r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
-    r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois")
-    r.append(" ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
+    r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         if not df_401.empty:
@@ -309,10 +310,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Données insuffisantes pour l'analyse des trop-payés.")
 
     # --- SECTION B : DOUBLONS ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION B] ANALYSE DES DOUBLONS")
-    r.append(" Recherche des écritures de charges identiques (montant et compte) sur la période.")
-    r.append("   L'objectif est de détecter des saisies multiples d'une même facture.\n")
+    r.append("Recherche des écritures de charges identiques (montant et compte) sur la période.")
+    r.append("L'objectif est de détecter des saisies multiples d'une même facture.\n")
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
         df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)]
         doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
@@ -325,10 +326,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Données insuffisantes pour l'analyse des doublons.")
 
     # --- SECTION C : IMPAYÉS FOURNISSEURS ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION C] ANALYSE DES IMPAYÉS (> 3 MOIS)")
-    r.append(" Liste les factures en attente de paiement depuis plus de 90 jours.")
-    r.append(" Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
+    r.append("Liste les factures en attente de paiement depuis plus de 90 jours.")
+    r.append("Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         alertes_impayes = []
@@ -353,10 +354,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION D : COMPTES D'ATTENTE (471 & 472) ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION D] ANALYSE DYNAMIQUE DES COMPTES D'ATTENTE (471 & 472)")
-    r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice")
-    r.append("pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
+    r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns:
         for racine in ['471', '472']:
@@ -419,10 +419,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION E : ANALYSE DES TIERS (461 & 462) ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
-    r.append(" Surveille les créances sur tiers et les dossiers au contentieux.")
-    r.append(" Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
+    r.append("Surveille les créances sur tiers et les dossiers au contentieux.")
+    r.append("Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         for racine in ['461', '462']:
             df_tiers = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
@@ -462,11 +462,11 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     
     # --- SECTION F : RAPPROCHEMENT BANCAIRE COMPLET ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
-    r.append(" Compare ligne à ligne la banque et la comptabilité (Compte 512).")
-    r.append(" Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
-    r.append("-" * 75 + "\n")
+    r.append("Compare ligne à ligne la banque et la comptabilité (Compte 512).")
+    r.append("Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
+    r.append("-"*79 + "\n")
 
     DAYS_WINDOW        = 30  # tolérance de date pour le matching 1-to-1 et seuil d'alerte
     DAYS_WINDOW_GROUPE = 7   # tolérance de date pour la recherche de groupements
@@ -658,7 +658,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         # --- Anomalies résiduelles : présence banque / absence compta ---
         absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
-            r.append(f"PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
+            r.append(f"\nPRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
             for j in sorted(absent_compta,
                             key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1])
                                             else pd.Timestamp.min):
@@ -708,10 +708,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     # --- SECTION G : REJETS BANCAIRES ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
-    r.append(" Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.")
-    r.append(" Utilise la similarité de Levenshtein pour pallier les erreurs de lecture (OCR).\n")
+    r.append("Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.\n")
 
     DAYS_WINDOW = 60
     
@@ -770,10 +769,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
 
     # --- SECTION H : FOURNISSEURS SUSPECTS (OCCASIONNELS) ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION H] ANALYSE DES FOURNISSEURS OCCASIONNELS (< 4 écritures/an)")
-    r.append(" Isole les prestataires avec très peu d'activité. En copropriété, cela peut révéler")
-    r.append(" des factures de complaisance ou des dépenses ponctuelles non mises en concurrence.\n")
+    r.append("Isole les prestataires avec très peu d'activité. En copropriété, cela peut révéler des factures de complaisance ou des dépenses ponctuelles non mises en concurrence.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         if not df_401.empty and 'CREDIT' in df_401.columns:
@@ -803,10 +801,9 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION I : CONTRÔLE DU FONDS DE TRAVAUX (LOI ALUR) ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION I] CONTRÔLE DU FONDS DE TRAVAUX (COMPTES 105 & 502)")
-    r.append(" Vérifie que les sommes appelées pour les travaux (105) sont réellement transférées")
-    r.append(" sur le compte d'épargne (502). Un écart indique une utilisation illégale de ces fonds pour la gestion courante.\n")
+    r.append("Vérifie que les sommes appelées pour les travaux (105) sont réellement transférées sur le compte d'épargne (502). Un écart indique une utilisation illégale de ces fonds pour la gestion courante.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
         df_105 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('105')].copy()
         df_502 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('502')].copy()
@@ -823,7 +820,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             r.append(f"Le syndic utilise cet argent pour financer le fonctionnement courant.")
             total_anomalies += ecart_placement
         elif ecart_placement < -100.00:
-            r.append(f"    Sur-placement : {abs(ecart_placement):.2f}€ de plus que prévu sur le Livret.")
+            r.append(f"Sur-placement : {abs(ecart_placement):.2f}€ de plus que prévu sur le Livret.")
         else:
             r.append("Parfaite cohérence : Le fonds de travaux est intégralement placé.")
     else:
@@ -832,10 +829,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION J : CONTRÔLE DES FRAIS FACTURÉS PAR LE SYNDIC PAR RAPPORT AU CONTRAT DU SYNDIC (comptes 621 et 622) ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SECTION J] CONTRÔLE DES FRAIS DE SYNDIC")
     r.append("Comparaison des honoraires facturés (comptes 621, 622) avec les tarifs du contrat.")
-    r.append(" L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
+    r.append("L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
     r.append("Tarifs extraits du contrat du syndic :")
     for cle, valeur in df_contrat.items():
         r.append(f"    - {cle:<35} : {valeur:.2f} EUR")
@@ -915,15 +912,15 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     
     # --- SYNTHESE CHIFFREE DES ANOMALIES EN PROPRORTION DU BUDGET ---
-    r.append("\n" + "="*75)
+    r.append("\n" + "=""="*79)
     r.append("[SYNTHÈSE CHIFFRÉE] RATIO D'ANOMALIES / BUDGET")
-    r.append("="*75)
+    r.append("=""="*79)
 
     if budget > 0:
         ratio = (total_anomalies / budget) * 100
         r.append(f"Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
         r.append(f"Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
-        r.append(f"Ratio anomalies / budget        : {ratio:>11.0f} %")
+        r.append(f"Ratio anomalies / budget        : {ratio:>11.0f}%")
         if ratio < 0.25:
             r.append("Appréciation : Aucune anomalie significative (< 0.25% du budget).")
         elif ratio < 1:
@@ -938,7 +935,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
         r.append(f"Total des anomalies détectées : {total_anomalies:.2f} EUR")
     
-    r.append("\n" + "="*75 + "\nFIN DU RAPPORT")
+    r.append("\n" + "=""="*79 + "\nFIN DU RAPPORT")
 
     return "\n".join(r)
 
@@ -1350,27 +1347,27 @@ with col2:
                     # Disclaimer
                     pdf.set_text_color(*GRIS)
                     pdf.set_font("helvetica", "I", size=10)
-                    texte_disclaimer = "Disclaimer: Cet examen a été exécuté par un assistant digital conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
+                    texte_disclaimer = "Disclaimer:\nCet examen a été exécuté par un assistant digital (https://auditcopro.streamlit.app) conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Il ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes."
                     pdf.multi_cell(0, 5, texte_disclaimer)
-                    pdf.ln(10)
+                    pdf.ln(20)
                     
                     # On réinitialise la couleur et la police pour la suite
                     pdf.set_text_color(*NOIR)
                     pdf.set_font("helvetica", size=11)
-
-                    # Ligne de séparation
-                    pdf.set_draw_color(*OR)
-                    pdf.set_line_width(0.5)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(20)
                                     
                     # Titre de la section IA
                     pdf.set_font("helvetica", "B", 14)
                     pdf.set_text_color(*NAVY)
                     pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
-                    pdf.ln(15)
                     pdf.set_font("helvetica", size=11)
                     pdf.set_text_color(*NOIR)
+
+                    # Ligne de séparation
+                    pdf.ln(10)
+                    pdf.set_draw_color(*OR)
+                    pdf.set_line_width(0.5)
+                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                    pdf.ln(10)
                     
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
                     texte_final = (str(synthese_texte)
