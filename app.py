@@ -30,14 +30,14 @@ if not os.path.exists(UPLOAD_DIR):
 GEMINI_MODEL="gemini-2.5-flash-lite"
 #GEMINI_MODEL="gemini-2.5-flash"
 
-API_KEY = st.secrets["GEMINI_API_KEY2"]
+API_KEY = st.secrets["GEMINI_API_KEY3"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
-MAX_RETRIES = 2 #Nombre d'essais en tout pour chaque appel IA
-WAIT_MINUTES = 3 #Temps d'attente avant ré-essai en minutes
+MAX_RETRIES = 3 #Nombre d'essais en tout pour chaque appel IA
+WAIT_MINUTES = 2 #Temps d'attente avant ré-essai en minutes
 
 ##############################################################################################################################################################"
 
