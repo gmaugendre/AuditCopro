@@ -77,6 +77,7 @@ def convert_pdf_to_excel(pdf_path):
             Si les colonnes CODE_JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
             Mets les en-têtes des colonnes NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
             Les dates doivent être au format date JJ/MM/AAAA.
+            Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
             Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
             Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
             Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
@@ -133,6 +134,7 @@ def extract_releve_data(pdf_path):
                         Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
                         Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
                         Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
+                        Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
                         Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
                         Format de date : Utilise le format JJ/MM/AAAA.
                         SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
@@ -464,7 +466,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
     r.append(" Compare ligne à ligne la banque et la comptabilité (Compte 512).")
     r.append(" Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
-    r.append("-" * 80 + "\n")
+    r.append("-" * 75 + "\n")
 
     DAYS_WINDOW        = 30  # tolérance de date pour le matching 1-to-1 et seuil d'alerte
     DAYS_WINDOW_GROUPE = 7   # tolérance de date pour la recherche de groupements
@@ -1356,7 +1358,7 @@ with col2:
                             pdf.set_font("helvetica", "B", 14)
                             pdf.set_text_color(*NAVY)
                             pdf.cell(0, 10, "Synthèse de l'analyse", new_x="LMARGIN", new_y="NEXT")
-                            pdf.ln(20)
+                            pdf.ln(15)
                             pdf.set_font("helvetica", size=11)
                             pdf.set_text_color(*NOIR)
                             
