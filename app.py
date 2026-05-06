@@ -36,7 +36,7 @@ client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 THRESHOLD_FUZZ=85
 
 #POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
-MAX_RETRIES = 1 #Nombre d'essais en tout pour chaque appel IA
+MAX_RETRIES = 2 #Nombre d'essais en tout pour chaque appel IA
 WAIT_MINUTES = 5 #Temps d'attente avant ré-essai en minutes
 
 ##############################################################################################################################################################"
