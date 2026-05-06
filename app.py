@@ -114,7 +114,7 @@ def convert_pdf_to_excel(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{RIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -172,7 +172,7 @@ def extract_releve_data(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{RIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
