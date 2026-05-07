@@ -797,7 +797,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     # --- SECTION G : REJETS BANCAIRES ---
     r.append("\n" + "="*79)
     r.append("[SECTION G] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
-    r.append("Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.\n")
+    r.append("Vérifie que chaque incident bancaire (impayé copropriétaire ou frais bancaire imputable à un copropriétaire) a bien été répercuté sur le compte 450 du copropriétaire.\n")
 
     DAYS_WINDOW = 60
     
