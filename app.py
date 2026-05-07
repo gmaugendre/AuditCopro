@@ -371,34 +371,59 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Données insuffisantes pour l'analyse des doublons.")
 
 
-    
+
+
     # --- SECTION C : IMPAYÉS FOURNISSEURS ---
     r.append("\n" + "="*79)
     r.append("[SECTION C] ANALYSE DES IMPAYÉS (> 3 MOIS)")
-    r.append("Liste les factures en attente de paiement depuis plus de 90 jours.")
+    r.append("Liste l'intégralité des factures en attente de paiement depuis plus de 90 jours.")
     r.append("Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
+    
     if 'NUMERO_COMPTE' in df_gl.columns:
+        # Filtrage des comptes fournisseurs (401)
         df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
         alertes_impayes = []
+        
+        # On parcourt chaque compte fournisseur unique
         for compte in df_401['NUMERO_COMPTE'].unique():
             sub = df_401[df_401['NUMERO_COMPTE'] == compte]
-            if (sub['CREDIT'].sum() - sub['DEBIT'].sum()) > 1.00:
+            
+            # Vérification du solde global du fournisseur
+            solde_fournisseur = sub['CREDIT'].sum() - sub['DEBIT'].sum()
+            
+            # Si le compte est créditeur (on doit de l'argent)
+            if solde_fournisseur > 1.00:
+                # Identification des lignes de crédit (factures)
                 factures = sub[sub['CREDIT'] > 0]
                 for _, f in factures.iterrows():
                     if pd.notnull(f['DATE']):
-                        delta_j = (date_ref - pd.to_datetime(f['DATE'])).total_seconds() / 86400
+                        # Calcul de l'ancienneté par rapport à la date de clôture
+                        date_facture = pd.to_datetime(f['DATE'])
+                        delta_j = (date_ref - date_facture).total_seconds() / 86400
+                        
+                        # Seuil d'impayé (90 jours)
                         if delta_j > 90:
                             alertes_impayes.append(f)
+        
         if alertes_impayes:
-            for a in alertes_impayes[:10]:
-                r.append(f"{a['NOM_COMPTE'][:20]:<20} | {a['DATE'].strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
+            # En-tête formaté
+            r.append(f"{'N° COMPTE':<12} | {'NOM DU COMPTE':<20} | {'DATE':<10} | {'MONTANT':>10}")
+            r.append("-" * 75)
+            
+            # Affichage de TOUTES les alertes sans limitation de tranche
+            for a in alertes_impayes:
+                r.append(f"{str(a['NUMERO_COMPTE']):<12} | {str(a['NOM_COMPTE'])[:20]:<20} | {pd.to_datetime(a['DATE']).strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
                 total_anomalies += a['CREDIT']
+            
+            r.append("-" * 75)
+            r.append(f"TOTAL SECTION C : {len(alertes_impayes)} facture(s) détectée(s).")
         else:
-            r.append("    Aucune facture ancienne en attente.")
+            r.append("Aucune facture ancienne en attente de paiement (Seuil 90 jours).")
     else:
-        r.append("    Données insuffisantes pour l'analyse des impayés.")
+        r.append("Analyse impossible : la colonne 'NUMERO_COMPTE' n'a pas été trouvée.")
 
 
+    
     
     # --- SECTION D : COMPTES D'ATTENTE (471 & 472) ---
     r.append("\n" + "="*79)
@@ -512,7 +537,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*79)
     r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
     r.append("Compare ligne à ligne la banque et la comptabilité (Compte 512).")
-    r.append("Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement).")
+    r.append("Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement) et inversement.")
     r.append("-"*79 + "\n")
 
     DAYS_WINDOW        = 30  # tolérance de date pour le matching 1-to-1 et seuil d'alerte
@@ -738,13 +763,13 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         df_512   = gl_clean[mask_512].copy()
 
         # 1. ENCAISSEMENTS — Débit 512 (compta) vs Crédit banque
-        r.append("--- ENCAISSEMENTS (Paiements copropriétaires, etc.) ---")
+        r.append("--- ENCAISSEMENTS (Paiements copropriétaires, etc.) ---\n")
         gl_e = df_512[df_512['DEBIT'] > 0.001].copy()
         bk_e = bk_clean[bk_clean['CREDIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_e, bk_e, "Encaissements", "Banque", "DEBIT", "CREDIT")
 
         # 2. DÉCAISSEMENTS — Crédit 512 (compta) vs Débit banque
-        r.append("\n--- DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---")
+        r.append("\n--- DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---\n")
         gl_d = df_512[df_512['CREDIT'] > 0.001].copy()
         bk_d = bk_clean[bk_clean['DEBIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_d, bk_d, "Décaissements", "Banque", "CREDIT", "DEBIT")
