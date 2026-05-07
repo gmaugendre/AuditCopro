@@ -633,7 +633,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("\n" + "="*79)
     r.append("[SECTION D] ANALYSE DES IMPAYÉS (> 3 MOIS)")
     r.append("Liste l'intégralité des factures en attente de paiement depuis plus de 90 jours.")
-    r.append("Un volume élevé indique un risque de contentieux ou une risque de trésorerie.\n")
+    r.append("Un volume élevé indique un risque de contentieux ou un risque de trésorerie.\n")
     
     if 'NUMERO_COMPTE' in df_gl.columns:
         # Filtrage des comptes fournisseurs (401)
@@ -1282,6 +1282,11 @@ with col_texte:
 with col_logo:
     # On affiche le logo à droite
     st.image("Logo.png", width=300) # , use_container_width=True)
+
+    with open("Exemple_Rapport.pdf", "rb") as f:
+        pdf_exemple = f.read()
+    st.download_button(label="📄 Voir un exemple", data=pdf_exemple, file_name="Exemple de rapport.pdf", mime="application/pdf", use_container_width=True)
+
 st.markdown("---")
 
 # --- CHARGEMENT DES DONNEES ---
