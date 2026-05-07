@@ -308,234 +308,12 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     if 'NUMERO_COMPTE' in df_gl.columns and 'CREDIT' in df_gl.columns:
         df_701 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('701')]
         budget = df_701['CREDIT'].sum()
-    
-    # --- SECTION A : TROP-PAYÉS ---
-    r.append("[SECTION A] ANALYSE DES TROP-PAYÉS")
-    r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
-    if 'NUMERO_COMPTE' in df_gl.columns:
-        df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
-        if not df_401.empty:
-            synthese_401 = df_401.groupby(['NUMERO_COMPTE', 'NOM_COMPTE']).agg({'DEBIT': 'sum', 'CREDIT': 'sum'}).reset_index()
-            synthese_401['SOLDE'] = synthese_401['CREDIT'] - synthese_401['DEBIT']
-            trop_payes = synthese_401[synthese_401['SOLDE'] < -1.00]
-            if not trop_payes.empty:
-                for _, row in trop_payes.iterrows():
-                    r.append(f"{row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
-                    total_anomalies += abs(row['SOLDE'])
-            else:
-                r.append("Aucun trop-payé détecté.")
-        else:
-            r.append("Aucun fournisseur détecté.")
-    else:
-        r.append("Données insuffisantes pour l'analyse des trop-payés.")
 
 
 
-    # --- SECTION B : DOUBLONS ---
+    # --- SECTION A : RAPPROCHEMENT BANCAIRE COMPLET ---
     r.append("\n" + "="*79)
-    r.append("[SECTION B] ANALYSE DES DOUBLONS")
-    r.append("Recherche des écritures de charges identiques (montant et compte) sur la période.")
-    r.append("L'objectif est de détecter des saisies multiples d'une même facture.\n")
-
-    if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
-        # Filtrage des comptes de classe 6 avec débit > 0
-        df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)].copy()
-        
-        # Identification des doublons (keep=False pour garder toutes les occurrences)
-        doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
-        
-        if not doublons.empty:
-            # Tri par montant et compte pour regrouper les doublons côte à côte
-            doublons = doublons.sort_values(by=['DEBIT', 'NUMERO_COMPTE'])
-            
-            r.append(f"{len(doublons)} lignes suspectes ({len(doublons)//2} paires ou plus).")
-            r.append("-" * 79)
-            # En-tête du petit tableau
-            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
-            r.append("-" * 79)
-            
-            for _, row in doublons.iterrows():
-                # Formatage de la date (sécurité si ce n'est pas un datetime)
-                date_str = row['DATE'].strftime('%d/%m/%Y') if hasattr(row['DATE'], 'strftime') else str(row['DATE'])
-                compte = str(row['NUMERO_COMPTE'])
-                montant = row['DEBIT']
-                libelle = str(row['LIBELLE'])[:40] # Tronqué pour l'alignement
-                
-                r.append(f"{compte:<10} | {date_str:<12} | {montant:>10.2f}€ | {libelle}")
-            
-            r.append("-" * 79)
-            total_anomalies += doublons['DEBIT'].sum() / 2
-        else:
-            r.append("Aucun doublon détecté.")
-    else:
-        r.append("Données insuffisantes pour l'analyse des doublons.")
-
-
-
-
-    # --- SECTION C : IMPAYÉS FOURNISSEURS ---
-    r.append("\n" + "="*79)
-    r.append("[SECTION C] ANALYSE DES IMPAYÉS (> 3 MOIS)")
-    r.append("Liste l'intégralité des factures en attente de paiement depuis plus de 90 jours.")
-    r.append("Un volume élevé indique un risque de contentieux ou une rupture de trésorerie.\n")
-    
-    if 'NUMERO_COMPTE' in df_gl.columns:
-        # Filtrage des comptes fournisseurs (401)
-        df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
-        alertes_impayes = []
-        
-        # On parcourt chaque compte fournisseur unique
-        for compte in df_401['NUMERO_COMPTE'].unique():
-            sub = df_401[df_401['NUMERO_COMPTE'] == compte]
-            
-            # Vérification du solde global du fournisseur
-            solde_fournisseur = sub['CREDIT'].sum() - sub['DEBIT'].sum()
-            
-            # Si le compte est créditeur (on doit de l'argent)
-            if solde_fournisseur > 1.00:
-                # Identification des lignes de crédit (factures)
-                factures = sub[sub['CREDIT'] > 0]
-                for _, f in factures.iterrows():
-                    if pd.notnull(f['DATE']):
-                        # Calcul de l'ancienneté par rapport à la date de clôture
-                        date_facture = pd.to_datetime(f['DATE'])
-                        delta_j = (date_ref - date_facture).total_seconds() / 86400
-                        
-                        # Seuil d'impayé (90 jours)
-                        if delta_j > 90:
-                            alertes_impayes.append(f)
-        
-        if alertes_impayes:
-            # En-tête formaté
-            r.append(f"{'N° COMPTE':<12} | {'NOM DU COMPTE':<20} | {'DATE':<10} | {'MONTANT':>10}")
-            r.append("-" * 75)
-            
-            # Affichage de TOUTES les alertes sans limitation de tranche
-            for a in alertes_impayes:
-                r.append(f"{str(a['NUMERO_COMPTE']):<12} | {str(a['NOM_COMPTE'])[:20]:<20} | {pd.to_datetime(a['DATE']).strftime('%d/%m/%Y')} | {a['CREDIT']:>8.2f}€")
-                total_anomalies += a['CREDIT']
-            
-            r.append("-" * 75)
-            r.append(f"TOTAL SECTION C : {len(alertes_impayes)} facture(s) détectée(s).")
-        else:
-            r.append("Aucune facture ancienne en attente de paiement (Seuil 90 jours).")
-    else:
-        r.append("Analyse impossible : la colonne 'NUMERO_COMPTE' n'a pas été trouvée.")
-
-
-    
-    
-    # --- SECTION D : COMPTES D'ATTENTE (471 & 472) ---
-    r.append("\n" + "="*79)
-    r.append("[SECTION D] ANALYSE DYNAMIQUE DES COMPTES D'ATTENTE (471 & 472)")
-    r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
-    
-    if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns:
-        for racine in ['471', '472']:
-            # Filtrage et préparation des données
-            df_attente = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
-            df_attente['DATE'] = pd.to_datetime(df_attente['DATE'], errors='coerce')
-            df_attente = df_attente.dropna(subset=['DATE']).sort_values('DATE')
-    
-            if not df_attente.empty:
-                # 1. Analyse du Solde Final
-                solde_final = df_attente['CREDIT'].sum() - df_attente['DEBIT'].sum()
-                total_anomalies += abs(solde_final)
-                
-                # 2. Calcul du Pic de Trésorerie (Le montant max qui a "traîné")
-                df_attente['FLUX'] = df_attente['CREDIT'] - df_attente['DEBIT']
-                df_attente['SOLDE_CHRONO'] = df_attente['FLUX'].cumsum()
-                pic_max = df_attente['SOLDE_CHRONO'].abs().max()
-                date_pic = df_attente.loc[df_attente['SOLDE_CHRONO'].abs().idxmax(), 'DATE']
-    
-                # 3. Analyse du "Nettoyage" de fin d'année
-                # On regarde les mouvements dans les 30 derniers jours avant la clôture
-                date_cloture = df_attente['DATE'].max()
-                seuil_fin_annee = date_cloture - pd.Timedelta(days=30)
-                flux_fin_annee = df_attente[df_attente['DATE'] >= seuil_fin_annee]['FLUX'].abs().sum()
-                flux_total = df_attente['FLUX'].abs().sum()
-                ratio_nettoyage = (flux_fin_annee / flux_total * 100) if flux_total > 0 else 0
-    
-                # --- AFFICHAGE DES RÉSULTATS ---
-                r.append(f"--- ANALYSE DU COMPTE {racine} ---")
-                
-                # État final
-                type_solde = "CRÉDITEUR" if solde_final > 0 else "DÉBITEUR"
-                r.append(f"Solde au bilan : {abs(solde_final):.2f}€ ({type_solde if abs(solde_final) > 5 else 'Soldé'})")
-    
-                # Alerte Pic
-                if pic_max > 5000: # Seuil d'alerte à adapter
-                    r.append(f"Point de vigilance : Pic de {pic_max:.2f}€ atteint le {date_pic.strftime('%d/%m/%Y')}.")
-                
-                # Alerte Nettoyage Tardif
-                if ratio_nettoyage > 50 and abs(solde_final) < 100:
-                    r.append(f"ALERTE COSMÉTIQUE : {ratio_nettoyage:.1f}% des écritures ont été régularisées dans les 30 derniers jours. Nettoyage tardif des comptes.")
-    
-                # 4. Détail des écritures anciennes (plus de 180 jours)
-                # Utilisation de date_ref si définie, sinon la date max du dataframe
-                d_ref = date_ref if 'date_ref' in locals() else df_attente['DATE'].max()
-                ecritures_anciennes = df_attente[(d_ref - df_attente['DATE']).dt.days > 180]
-                
-                if not ecritures_anciennes.empty and abs(solde_final) > 5:
-                    r.append(f"NÉGLIGENCE : {len(ecritures_anciennes)} ligne(s) stagnent depuis plus de 6 mois.")
-                    for _, row in ecritures_anciennes.tail(5).iterrows(): # On montre les 5 plus vieilles
-                        r.append(f"   - {row['DATE'].strftime('%d/%m/%Y')} | {max(row['DEBIT'], row['CREDIT']):.2f}€ | {row['LIBELLE'][:40]}")
-                
-                r.append("") # Espace entre 471 et 472
-            else:
-                r.append(f"COMPTE {racine} : Aucun mouvement détecté.")
-    else:
-        r.append("Données (Colonnes NUMERO_COMPTE ou DATE) manquantes pour l'analyse dynamique.")
-
-    
-
-    
-    # --- SECTION E : ANALYSE DES TIERS (461 & 462) ---
-    r.append("\n" + "="*79)
-    r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
-    r.append("Surveille les créances sur tiers et les dossiers au contentieux.")
-    r.append("Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
-    if 'NUMERO_COMPTE' in df_gl.columns:
-        for racine in ['461', '462']:
-            df_tiers = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
-            if not df_tiers.empty:
-                solde_net = df_tiers['DEBIT'].sum() - df_tiers['CREDIT'].sum()
-                if racine == '461':
-                    r.append("Compte 461 — Débiteurs divers : doit normalement être débiteur (sommes à recevoir).")
-                    if solde_net < -1.00:
-                        r.append(f"    ANOMALIE : Solde CRÉDITEUR de {abs(solde_net):.2f}€ (illogique pour ce compte).")
-                    else:
-                        r.append(f"    Solde actuel : {solde_net:.2f}€ (Débiteur).")
-                    
-                    if 'DATE' in df_tiers.columns:
-                        df_tiers['DATE'] = pd.to_datetime(df_tiers['DATE'], errors='coerce')
-                        anciennes_461 = df_tiers[(date_ref - df_tiers['DATE']).dt.days > 365]
-                        if not anciennes_461.empty:
-                            r.append(f"    ATTENTION : {len(anciennes_461)} créance(s) de plus d'un an.")
-
-                elif racine == '462':
-                    r.append(" Compte 462 — Copropriétaires douteux : créances transférées pour recouvrement.")
-                    if solde_net < -1.00:
-                        r.append(f"    ANOMALIE : Solde CRÉDITEUR de {abs(solde_net):.2f}€ (paiement mal affecté ?).")
-                    else:
-                        r.append(f"    Encours contentieux total : {solde_net:.2f}€.")
-                    
-                    if 'DATE' in df_tiers.columns:
-                        df_tiers['DATE'] = pd.to_datetime(df_tiers['DATE'], errors='coerce')
-                        anciennes_462 = df_tiers[(date_ref - df_tiers['DATE']).dt.days > 730]
-                        if not anciennes_462.empty:
-                            r.append(f"    ATTENTION : {len(anciennes_462)} dossier(s) en litige depuis plus de 2 ans.")
-            else:
-                r.append(f"    COMPTE {racine} : Aucun mouvement détecté.")
-    else:
-        r.append("Données insuffisantes pour l'analyse des tiers.")
-
-
-    
-    
-    # --- SECTION F : RAPPROCHEMENT BANCAIRE COMPLET ---
-    r.append("\n" + "="*79)
-    r.append("[SECTION G] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
+    r.append("[SECTION A] RAPPROCHEMENT BANCAIRE (SORTIES ET ENTRÉES)")
     r.append("Compare ligne à ligne la banque et la comptabilité (Compte 512).")
     r.append("Rappel : Un CRÉDIT en banque est un DÉBIT en comptabilité (Encaissement) et inversement.")
     r.append("-"*79 + "\n")
@@ -778,10 +556,240 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append("Données insuffisantes (Grand livre ou Relevés) pour le rapprochement.")
 
 
+    
+    # --- SECTION B : TROP-PAYÉS ---
+    r.append("[SECTION B] ANALYSE DES TROP-PAYÉS")
+    r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
+    if 'NUMERO_COMPTE' in df_gl.columns:
+        df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
+        if not df_401.empty:
+            synthese_401 = df_401.groupby(['NUMERO_COMPTE', 'NOM_COMPTE']).agg({'DEBIT': 'sum', 'CREDIT': 'sum'}).reset_index()
+            synthese_401['SOLDE'] = synthese_401['CREDIT'] - synthese_401['DEBIT']
+            trop_payes = synthese_401[synthese_401['SOLDE'] < -1.00]
+            if not trop_payes.empty:
+                for _, row in trop_payes.iterrows():
+                    r.append(f"{row['NOM_COMPTE']} : {abs(row['SOLDE']):.2f}€ à récupérer.")
+                    total_anomalies += abs(row['SOLDE'])
+            else:
+                r.append("Aucun trop-payé détecté.")
+        else:
+            r.append("Aucun fournisseur détecté.")
+    else:
+        r.append("Données insuffisantes pour l'analyse des trop-payés.")
+
+ 
+
+    # --- SECTION C : DOUBLONS ---
+    r.append("\n" + "="*79)
+    r.append("[SECTION C] ANALYSE DES DOUBLONS")
+    r.append("Recherche des écritures de charges identiques (montant et compte) sur la période.")
+    r.append("L'objectif est de détecter des saisies multiples d'une même facture.\n")
+
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns:
+        # Filtrage des comptes de classe 6 avec débit > 0
+        df_6 = df_gl[(df_gl['NUMERO_COMPTE'].astype(str).str.startswith('6')) & (df_gl['DEBIT'] > 0)].copy()
+        
+        # Identification des doublons (keep=False pour garder toutes les occurrences)
+        doublons = df_6[df_6.duplicated(subset=['DEBIT', 'NUMERO_COMPTE'], keep=False)]
+        
+        if not doublons.empty:
+            # Tri par montant et compte pour regrouper les doublons côte à côte
+            doublons = doublons.sort_values(by=['DEBIT', 'NUMERO_COMPTE'])
+            
+            r.append(f"{len(doublons)} lignes suspectes ({len(doublons)//2} paires ou plus).")
+            r.append("-" * 79)
+            # En-tête du petit tableau
+            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
+            r.append("-" * 79)
+            
+            for _, row in doublons.iterrows():
+                # Formatage de la date (sécurité si ce n'est pas un datetime)
+                date_str = row['DATE'].strftime('%d/%m/%Y') if hasattr(row['DATE'], 'strftime') else str(row['DATE'])
+                compte = str(row['NUMERO_COMPTE'])
+                montant = row['DEBIT']
+                libelle = str(row['LIBELLE'])[:40] # Tronqué pour l'alignement
+                
+                r.append(f"{compte:<10} | {date_str:<12} | {montant:>10.2f}€ | {libelle}")
+            
+            r.append("-" * 79)
+            total_anomalies += doublons['DEBIT'].sum() / 2
+        else:
+            r.append("Aucun doublon détecté.")
+    else:
+        r.append("Données insuffisantes pour l'analyse des doublons.")
+
+
+
+    # --- SECTION D : IMPAYÉS FOURNISSEURS ---
+    r.append("\n" + "="*79)
+    r.append("[SECTION D] ANALYSE DES IMPAYÉS (> 3 MOIS)")
+    r.append("Liste l'intégralité des factures en attente de paiement depuis plus de 90 jours.")
+    r.append("Un volume élevé indique un risque de contentieux ou une risque de trésorerie.\n")
+    
+    if 'NUMERO_COMPTE' in df_gl.columns:
+        # Filtrage des comptes fournisseurs (401)
+        df_401 = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith('401')].copy()
+        alertes_impayes = []
+        
+        # On parcourt chaque compte fournisseur unique
+        for compte in df_401['NUMERO_COMPTE'].unique():
+            sub = df_401[df_401['NUMERO_COMPTE'] == compte]
+            
+            # Vérification du solde global du fournisseur
+            solde_fournisseur = sub['CREDIT'].sum() - sub['DEBIT'].sum()
+            
+            # Si le compte est créditeur (on doit de l'argent)
+            if solde_fournisseur > 1.00:
+                # Identification des lignes de crédit (factures)
+                factures = sub[sub['CREDIT'] > 0]
+                for _, f in factures.iterrows():
+                    if pd.notnull(f['DATE']):
+                        # Calcul de l'ancienneté par rapport à la date de clôture
+                        date_facture = pd.to_datetime(f['DATE'])
+                        delta_j = (date_ref - date_facture).total_seconds() / 86400
+                        
+                        # Seuil d'impayé (90 jours)
+                        if delta_j > 90:
+                            alertes_impayes.append(f)
+        
+        if alertes_impayes:
+            # En-tête formaté avec Libellé
+            # Note : On élargit le séparateur à 100 ou plus pour accommoder le texte
+            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
+            r.append("-" * 79)
+            
+            # Affichage de toutes les alertes
+            for a in alertes_impayes:
+                date_str = pd.to_datetime(a['DATE']).strftime('%d/%m/%Y')
+                compte = str(a['NUMERO_COMPTE'])
+                montant = a['CREDIT']
+                # On récupère le libellé (on utilise .get() pour éviter une erreur si la colonne libellé a un nom différent)
+                libelle = str(a.get('LIBELLE', a.get('NOM_COMPTE', 'Sans libellé')))[:40]
+                
+                r.append(f"{compte:<12} | {date_str:<10} | {montant:>10.2f}€ | {libelle}")
+                total_anomalies += montant
+            
+            r.append("-" * 79)
+            r.append(f"TOTAL : {len(alertes_impayes)} facture(s) détectée(s).")
+        else:
+            r.append("Aucune facture ancienne en attente de paiement (Seuil 90 jours).")
+    else:
+        r.append("Analyse impossible : la colonne 'NUMERO_COMPTE' n'a pas été trouvée.")
+
+
+    
+    # --- SECTION E : COMPTES D'ATTENTE (471 & 472) ---
+    r.append("\n" + "="*79)
+    r.append("[SECTION E] ANALYSE DYNAMIQUE DES COMPTES D'ATTENTE (471 & 472)")
+    r.append("L'analyse ne se limite pas au solde final mais examine les flux durant l'exercice pour détecter des retards de traitement ou des régularisations massives de fin d'année.\n")
+    
+    if 'NUMERO_COMPTE' in df_gl.columns and 'DATE' in df_gl.columns:
+        for racine in ['471', '472']:
+            # Filtrage et préparation des données
+            df_attente = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
+            df_attente['DATE'] = pd.to_datetime(df_attente['DATE'], errors='coerce')
+            df_attente = df_attente.dropna(subset=['DATE']).sort_values('DATE')
+    
+            if not df_attente.empty:
+                # 1. Analyse du Solde Final
+                solde_final = df_attente['CREDIT'].sum() - df_attente['DEBIT'].sum()
+                total_anomalies += abs(solde_final)
+                
+                # 2. Calcul du Pic de Trésorerie (Le montant max qui a "traîné")
+                df_attente['FLUX'] = df_attente['CREDIT'] - df_attente['DEBIT']
+                df_attente['SOLDE_CHRONO'] = df_attente['FLUX'].cumsum()
+                pic_max = df_attente['SOLDE_CHRONO'].abs().max()
+                date_pic = df_attente.loc[df_attente['SOLDE_CHRONO'].abs().idxmax(), 'DATE']
+    
+                # 3. Analyse du "Nettoyage" de fin d'année
+                # On regarde les mouvements dans les 30 derniers jours avant la clôture
+                date_cloture = df_attente['DATE'].max()
+                seuil_fin_annee = date_cloture - pd.Timedelta(days=30)
+                flux_fin_annee = df_attente[df_attente['DATE'] >= seuil_fin_annee]['FLUX'].abs().sum()
+                flux_total = df_attente['FLUX'].abs().sum()
+                ratio_nettoyage = (flux_fin_annee / flux_total * 100) if flux_total > 0 else 0
+    
+                # --- AFFICHAGE DES RÉSULTATS ---
+                r.append(f"--- ANALYSE DU COMPTE {racine} ---")
+                
+                # État final
+                type_solde = "CRÉDITEUR" if solde_final > 0 else "DÉBITEUR"
+                r.append(f"Solde au bilan : {abs(solde_final):.2f}€ ({type_solde if abs(solde_final) > 5 else 'Soldé'})")
+    
+                # Alerte Pic
+                if pic_max > 5000: # Seuil d'alerte à adapter
+                    r.append(f"Point de vigilance : Pic de {pic_max:.2f}€ atteint le {date_pic.strftime('%d/%m/%Y')}.")
+                
+                # Alerte Nettoyage Tardif
+                if ratio_nettoyage > 50 and abs(solde_final) < 100:
+                    r.append(f"ALERTE COSMÉTIQUE : {ratio_nettoyage:.1f}% des écritures ont été régularisées dans les 30 derniers jours. Nettoyage tardif des comptes.")
+    
+                # 4. Détail des écritures anciennes (plus de 180 jours)
+                # Utilisation de date_ref si définie, sinon la date max du dataframe
+                d_ref = date_ref if 'date_ref' in locals() else df_attente['DATE'].max()
+                ecritures_anciennes = df_attente[(d_ref - df_attente['DATE']).dt.days > 180]
+                
+                if not ecritures_anciennes.empty and abs(solde_final) > 5:
+                    r.append(f"NÉGLIGENCE : {len(ecritures_anciennes)} ligne(s) stagnent depuis plus de 6 mois.")
+                    for _, row in ecritures_anciennes.tail(5).iterrows(): # On montre les 5 plus vieilles
+                        r.append(f"   - {row['DATE'].strftime('%d/%m/%Y')} | {max(row['DEBIT'], row['CREDIT']):.2f}€ | {row['LIBELLE'][:40]}")
+                
+                r.append("") # Espace entre 471 et 472
+            else:
+                r.append(f"COMPTE {racine} : Aucun mouvement détecté.")
+    else:
+        r.append("Données (Colonnes NUMERO_COMPTE ou DATE) manquantes pour l'analyse dynamique.")
+
+    
+
+    
+    # --- SECTION F : ANALYSE DES TIERS (461 & 462) ---
+    r.append("\n" + "="*79)
+    r.append("[SECTION F] ANALYSE DES TIERS ET LITIGES (461 & 462)")
+    r.append("Surveille les créances sur tiers et les dossiers au contentieux.")
+    r.append("Un solde créditeur ici est anormal et indique souvent une erreur d'affectation de paiement.\n")
+    
+    if 'NUMERO_COMPTE' in df_gl.columns:
+        for racine in ['461', '462']:
+            df_tiers = df_gl[df_gl['NUMERO_COMPTE'].astype(str).str.startswith(racine)].copy()
+            if not df_tiers.empty:
+                solde_net = df_tiers['DEBIT'].sum() - df_tiers['CREDIT'].sum()
+                if racine == '461':
+                    r.append("Compte 461 — Débiteurs divers : doit normalement être débiteur (sommes à recevoir).")
+                    if solde_net < -1.00:
+                        r.append(f"ANOMALIE : Solde CRÉDITEUR de {abs(solde_net):.2f}€ (illogique pour ce compte).")
+                    else:
+                        r.append(f"Solde actuel : {solde_net:.2f}€ (Débiteur).")
+                    
+                    if 'DATE' in df_tiers.columns:
+                        df_tiers['DATE'] = pd.to_datetime(df_tiers['DATE'], errors='coerce')
+                        anciennes_461 = df_tiers[(date_ref - df_tiers['DATE']).dt.days > 365]
+                        if not anciennes_461.empty:
+                            r.append(f"ATTENTION : {len(anciennes_461)} créance(s) de plus d'un an.")
+
+                elif racine == '462':
+                    r.append(" Compte 462 — Copropriétaires douteux : créances transférées pour recouvrement.")
+                    if solde_net < -1.00:
+                        r.append(f"ANOMALIE : Solde CRÉDITEUR de {abs(solde_net):.2f}€ (paiement mal affecté ?).")
+                    else:
+                        r.append(f"Encours contentieux total : {solde_net:.2f}€.")
+                    
+                    if 'DATE' in df_tiers.columns:
+                        df_tiers['DATE'] = pd.to_datetime(df_tiers['DATE'], errors='coerce')
+                        anciennes_462 = df_tiers[(date_ref - df_tiers['DATE']).dt.days > 730]
+                        if not anciennes_462.empty:
+                            r.append(f"ATTENTION : {len(anciennes_462)} dossier(s) en litige depuis plus de 2 ans.")
+            else:
+                r.append(f"COMPTE {racine} : Aucun mouvement détecté.")
+    else:
+        r.append("Données insuffisantes pour l'analyse des tiers.")
+
+
+
 
     # --- SECTION G : REJETS BANCAIRES ---
     r.append("\n" + "="*79)
-    r.append("[SECTION D] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
+    r.append("[SECTION G] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
     r.append("Vérifie que chaque incident bancaire (impayé copropriétaire) a bien été régularisé.\n")
 
     DAYS_WINDOW = 60
