@@ -799,7 +799,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("[SECTION G] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
     r.append("Vérifie que chaque incident bancaire (impayé copropriétaire ou frais bancaire imputable à un copropriétaire) a bien été répercuté sur le compte 450 du copropriétaire.\n")
 
-    DAYS_WINDOW = 60
+    DAYS_WINDOW = 45
     
     def fuzzy_check_rejet(libelle):
         if not isinstance(libelle, str): return False
@@ -830,7 +830,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             montant_rej = rej['DEBIT']
             
             if pd.notnull(date_rej):
-                # On cherche en comptabilité un montant identique dans les 60 jours suivant le rejet bancaire
+                # On cherche en comptabilité un montant identique dans les DAYS_WINDOW jours suivant le rejet bancaire
                 match = df_450[
                     (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
                     (df_450['DATE'] >= date_rej) & 
