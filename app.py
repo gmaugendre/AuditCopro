@@ -924,7 +924,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     r.append("L'objectif est de détecter des surfacturations ou des prestations indûment facturées.\n")
     r.append("Tarifs extraits du contrat du syndic :")
     for cle, valeur in df_contrat.items():
-        r.append(f"    - {cle:<35} : {valeur:.2f} EUR")
+        r.append(f"    - {cle:<35} {valeur:.2f} EUR")
     r.append("")
     
     if 'NUMERO_COMPTE' in df_gl.columns and 'DEBIT' in df_gl.columns and 'LIBELLE' in df_gl.columns:
@@ -1010,16 +1010,16 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append(f"Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
         r.append(f"Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
         r.append(f"Ratio anomalies / budget        : {ratio:>12.0f} %")
-        if ratio < 0.25:
-            r.append("Appréciation : Aucune anomalie significative (< 0.25% du budget).")
-        elif ratio < 1:
-            r.append("Appréciation : Anomalies mineures (0.25% à 1% du budget).")
+        if ratio < 0.5:
+            r.append("Appréciation : Pas anomalie significative (< 0.5% du budget).")
+        elif ratio < 1.5:
+            r.append("Appréciation : Anomalies mineures (0.5% à 1.5% du budget).")
         elif ratio < 3:
-            r.append("Appréciation : Niveau d'anomalies notable (1% à 3% du budget). Vérifications recommandées.")
+            r.append("Appréciation : Anomalies notables (1.5% à 3% du budget). Vérifications recommandées.")
         elif ratio < 5:
-            r.append("Appréciation : Risque significatif identifié (3% à 5% du budget). Contrôles approfondis nécessaires.")
+            r.append("Appréciation : Anomalies significatives (3% à 5% du budget). Contrôles approfondis nécessaires.")
         else:
-            r.append("Appréciation : Niveau d'anomalies critique (> 5% du budget). Action immédiate requise.")    
+            r.append("Appréciation : Anomalies très importantes (> 5% du budget). Action immédiate requise.")    
     else:
         r.append("Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
         r.append(f"Total des anomalies détectées : {total_anomalies:.2f} EUR")
