@@ -482,7 +482,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
         # --- Groupements réconciliés ---
         if groupes_detectes:
-            r.append(f"   ÉCRITURES GROUPÉES RÉCONCILIÉES ({len(groupes_detectes)} écritures) :")
+            r.append(f"   {len(groupes_detectes)} ÉCRITURES GROUPÉES RÉCONCILIÉES (OK) :")
             for g in sorted(groupes_detectes,
                             key=lambda x: x['bk_date'] if pd.notnull(x['bk_date'])
                                           else pd.Timestamp.min):
@@ -498,7 +498,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
-            r.append(f"   PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
+            r.append(f"\n   PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE (KO):")
             for i in sorted(absent_banque,
                             key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
                                             else pd.Timestamp.min):
@@ -509,7 +509,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         # --- Anomalies résiduelles : présence banque / absence compta ---
         absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
-            r.append(f"\n   PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
+            r.append(f"\n   PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ (KO):")
             for j in sorted(absent_compta,
                             key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1])
                                             else pd.Timestamp.min):
@@ -798,7 +798,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     # --- SECTION G : REJETS BANCAIRES ---
     r.append("\n" + "="*79)
-    r.append("[SECTION G] ANALYSE DES REJETS BANCAIRES (LOGIQUE FLOUE)")
+    r.append("[SECTION G] ANALYSE DES REJETS BANCAIRES")
     r.append("Vérifie que chaque incident bancaire (impayé copropriétaire ou frais bancaire imputable à un copropriétaire) a bien été répercuté sur le compte 450 du copropriétaire.\n")
 
     DAYS_WINDOW = 45
@@ -1340,7 +1340,7 @@ with col2:
  
         if st.button("Générer le rapport d'analyse", type="primary"):
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
-                progress_bar = st.progress(10)
+                progress_bar = st.progress(15)
  
                 # Lecture Grand Livre
                 status.update(label="📄 Lecture du Grand livre... Veuillez patienter", expanded=True)
@@ -1362,7 +1362,7 @@ with col2:
                 # Lecture contrat
                 status.update(label="⚖️ Analyse du contrat du syndic... Veuillez patienter", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
-                progress_bar.progress(70)
+                progress_bar.progress(75)
  
                 # Audit comptable
                 status.update(label="🔍 Analyse approfondie des écritures comptables...", expanded=True)
@@ -1549,7 +1549,7 @@ with col2:
                 st.session_state["contrat_df"] = contrat_df
  
                 progress_bar.progress(100)
-                status.update(label=" Audit terminé !", state="complete", expanded=False)
+                status.update(label=" Cà y est !", state="complete", expanded=False)
  
         # ── AFFICHAGE DES RÉSULTATS ── hors du if st.button(), même niveau que lui
         if st.session_state.get("pdf_synthese"):
