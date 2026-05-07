@@ -1285,7 +1285,7 @@ with col_logo:
 
     with open("Exemple_Rapport.pdf", "rb") as f:
         pdf_exemple = f.read()
-    st.download_button(label="📄 Exemple de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
+    st.download_button(label="📄 Exemple   de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
 
 st.markdown("---")
 
