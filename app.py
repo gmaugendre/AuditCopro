@@ -1266,11 +1266,11 @@ with col_texte:
     # Corps de texte (Paragraphe p) - Plus lisible sans l'italique total
     st.markdown(f"""
         <p style="color: #444444; font-size: 1.1rem; line-height: 1.6; max-width: 800px;">
-            La comptabilité de copropriété est complexe et ses documents souvent denses. Pourtant, chaque ligne du <b>Grand Livre</b> compte. 
+            La comptabilité de copropriété est complexe. Pourtant, chaque ligne du Grand livre compte. 
             Pour les conseils syndicaux, l'analyse manuelle de centaines de pages est une mission laborieuse. 
-            <br><br>
+            <br>
             Nous mettons à votre disposition un <b>assistant numérique performant</b> pour simplifier votre analyse. 
-            Chargez vos documents en toute confidentialité et obtenez instantanément un rapport clair.
+            Chargez vos documents en toute confidentialité et obtenez instantanément un rapport simple et détaillé.
         </p>
     """, unsafe_allow_html=True)
 
