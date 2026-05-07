@@ -485,16 +485,13 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                             key=lambda x: x['bk_date'] if pd.notnull(x['bk_date'])
                                           else pd.Timestamp.min):
                 d = g['bk_date'].strftime('%d/%m/%Y') if pd.notnull(g['bk_date']) else "N/A"
-                r.append(
-                    f"    {d} | {g['bk_montant']:>8.2f}€ (banque) "
-                    f"    {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}"
-                )
+                r.append(f"{d} | {g['bk_montant']:>8.2f}€ | {g['bk_libelle'][:40]}\nen banque correspond à ces {len(g['gl_indices'])} ligne(s) en comptabilité :")
                 for i in sorted(g['gl_indices'],
                                 key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
                                                 else pd.Timestamp.min):
                     dg = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
-                    r.append(f"          {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
-
+                    r.append(f"   - {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
+            r.append(f"\")
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
