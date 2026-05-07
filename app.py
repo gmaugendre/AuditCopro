@@ -1412,7 +1412,7 @@ with col2:
                     # 1. Préambule
                     pdf.set_font("helvetica", size=11)
                     pdf.set_text_color(*NOIR)
-                    texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Des détails sont fournis en annexes."
+                    texte_preambule = "Ce rapport présente une synthèse des contrôles automatiques réalisés sur l'ensemble des écritures du grand livre de la copropriété, les relevés de compte bancaire du syndicat et le contrat du syndic pour l'exercice concerné. Tous les détails sont fournis en annexes."
                     pdf.multi_cell(0, 6, texte_preambule)
                     pdf.ln(10)
      
