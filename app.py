@@ -504,7 +504,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 r.append(f"   {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
                 total_anomalies += gl_v[i, 0]
 
-        # --- nomalies résiduelles : présence banque / absence compta ---
+        # --- Anomalies résiduelles : présence banque / absence compta ---
         absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
             r.append(f"\n   PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
