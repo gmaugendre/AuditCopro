@@ -31,6 +31,8 @@ if not os.path.exists(UPLOAD_DIR):
 #GEMINI_MODEL="gemini-2.5-flash"
 GEMINI_MODEL="gemini-2.5-flash-lite"
 
+NB_RELEVES_BANCAIRES = 1    #METTRE 12 POUR UNE PERIODE ANNUELLE EN PRODUCTION!!!!!!!!!!!!!!!!!!!!!
+
 API_KEY = st.secrets["GEMINI_API_KEY2"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
@@ -484,8 +486,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                                           else pd.Timestamp.min):
                 d = g['bk_date'].strftime('%d/%m/%Y') if pd.notnull(g['bk_date']) else "N/A"
                 r.append(
-                    f"      ► {d} | {g['bk_montant']:>8.2f}€ (banque) "
-                    f"← {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}"
+                    f"    {d} | {g['bk_montant']:>8.2f}€ (banque) "
+                    f"    {len(g['gl_indices'])} ligne(s) compta | {g['bk_libelle'][:40]}"
                 )
                 for i in sorted(g['gl_indices'],
                                 key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
@@ -1299,7 +1301,7 @@ with col2:
         gl_file is not None and
         contrat_file is not None and
         releves_files is not None and
-        len(releves_files) == 1 and   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Remettre 12 après débogage
+        len(releves_files) == NB_RELEVES_BANCAIRES and
         not fichiers_doublons
     )
  
