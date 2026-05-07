@@ -1257,9 +1257,27 @@ NOIR   = (30, 30, 30)
 col_texte, col_logo = st.columns([6, 1], vertical_alignment="center")
 
 with col_texte:
-    st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Votre expert digital indépendant : simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
-    st.markdown(f'<h4 style="color: rgb{OR};"><i>La comptabilité de copropriété est complexe et ses documents souvent denses. Pourtant, chaque ligne du Grand Livre compte. Pour les conseils syndicaux, l'analyse manuelle de centaines de pages est une mission laborieuse. Nous mettons à votre disposition un assistant numérique performant pour simplifier votre analyse. Chargez vos documents en toute confidentialité et obtenez instantanément un rapport clair.</i></h4>', unsafe_allow_html=True)
+    # Titre principal (H1)
+    st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 5px;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
+    
+    # Sous-titre accrocheur (H3)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0; margin-bottom: 20px;">Votre expert digital indépendant : simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
+    
+    # Corps de texte (Paragraphe p) - Plus lisible sans l'italique total
+    st.markdown(f"""
+        <p style="color: #444444; font-size: 1.1rem; line-height: 1.6; max-width: 800px;">
+            La comptabilité de copropriété est complexe et ses documents souvent denses. Pourtant, chaque ligne du <b>Grand Livre</b> compte. 
+            Pour les conseils syndicaux, l'analyse manuelle de centaines de pages est une mission laborieuse. 
+            <br><br>
+            Nous mettons à votre disposition un <b>assistant numérique performant</b> pour simplifier votre analyse. 
+            Chargez vos documents en toute confidentialité et obtenez instantanément un rapport clair.
+        </p>
+    """, unsafe_allow_html=True)
+
+    
+    #st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
+    #st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Votre expert digital indépendant : simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
+    #st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;"><i>La comptabilité de copropriété est complexe et ses documents souvent denses. Pourtant, chaque ligne du Grand Livre compte. Pour les conseils syndicaux, l'analyse manuelle de centaines de pages est une mission laborieuse. Nous mettons à votre disposition un assistant numérique performant pour simplifier votre analyse. Chargez vos documents en toute confidentialité et obtenez instantanément un rapport clair.</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
     # On affiche le logo à droite
