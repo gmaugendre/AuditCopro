@@ -6,7 +6,7 @@ import io
 import json
 from json_repair import repair_json
 import numpy as np
-from datetime import datetime, timedeltaExemple_Rapport
+from datetime import datetime, timedelta
 from pathlib import Path
 from google import genai
 from google.genai import types
