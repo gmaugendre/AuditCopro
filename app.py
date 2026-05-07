@@ -332,7 +332,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
 
     # --- SECTION B : DOUBLONS ---
-    r.append("\n" + "=="*40)
+    r.append("\n" + "="*79)
     r.append("[SECTION B] ANALYSE DES DOUBLONS")
     r.append("Recherche des écritures de charges identiques (montant et compte) sur la période.")
     r.append("L'objectif est de détecter des saisies multiples d'une même facture.\n")
@@ -349,10 +349,10 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             doublons = doublons.sort_values(by=['DEBIT', 'NUMERO_COMPTE'])
             
             r.append(f"{len(doublons)} lignes suspectes ({len(doublons)//2} paires ou plus).")
-            r.append("-" * 80)
+            r.append("-" * 79)
             # En-tête du petit tableau
             r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
-            r.append("-" * 80)
+            r.append("-" * 79)
             
             for _, row in doublons.iterrows():
                 # Formatage de la date (sécurité si ce n'est pas un datetime)
@@ -363,7 +363,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 
                 r.append(f"{compte:<10} | {date_str:<12} | {montant:>10.2f}€ | {libelle}")
             
-            r.append("-" * 80)
+            r.append("-" * 79)
             total_anomalies += doublons['DEBIT'].sum() / 2
         else:
             r.append("Aucun doublon détecté.")
@@ -1361,7 +1361,7 @@ with col2:
                         else:
                             st.error(f" Erreur technique : {e}")
 
-                # 2. Puis générer le PDF         
+                # 2. Puis générer le rapport PDF         
                 try:
                     # --- CONFIGURATION INITIALE DU PDF ---
                     pdf = FPDF()
@@ -1417,7 +1417,7 @@ with col2:
                     pdf.ln(10)
                     
                     # Nettoyage du texte pour éviter les erreurs d'encodage communes
-                    texte_final = (str(synthese_texte)
+                    texte_final = (synthese_texte                                        #texte_final = (str(synthese_texte) pour éviter tout bug
                         .replace("’", "'").replace("‘", "'")
                         .replace("“", '"').replace("”", '"')
                         .replace("–", "-").replace("—", "-")
