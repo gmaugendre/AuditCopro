@@ -31,7 +31,7 @@ if not os.path.exists(UPLOAD_DIR):
 GEMINI_MODEL="gemini-2.5-flash"
 #GEMINI_MODEL="gemini-2.5-flash-lite"
 
-API_KEY = st.secrets["GEMINI_API_KEY4"]
+API_KEY = st.secrets["GEMINI_API_KEY1"]
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 THRESHOLD_FUZZ=85
@@ -719,23 +719,23 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
-            r.append(f"PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
+            r.append(f"   1. PRÉSENCE EN COMPTABILITÉ / ABSENCE EN BANQUE :")
             for i in sorted(absent_banque,
                             key=lambda idx: gl_v[idx, 1] if pd.notnull(gl_v[idx, 1])
                                             else pd.Timestamp.min):
                 d = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
-                r.append(f"    - {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
+                r.append(f"    {d} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2]}")
                 total_anomalies += gl_v[i, 0]
 
-        # --- Anomalies résiduelles : présence banque / absence compta ---
+        # --- nomalies résiduelles : présence banque / absence compta ---
         absent_compta = [j for j in range(m) if j not in bk_matched_idx]
         if absent_compta:
-            r.append(f"\nPRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
+            r.append(f"\n   2. PRÉSENCE EN BANQUE / ABSENCE EN COMPTABILITÉ :")
             for j in sorted(absent_compta,
                             key=lambda idx: bk_v[idx, 1] if pd.notnull(bk_v[idx, 1])
                                             else pd.Timestamp.min):
                 d = bk_v[j, 1].strftime('%d/%m/%Y') if pd.notnull(bk_v[j, 1]) else "N/A"
-                r.append(f"    - {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
+                r.append(f"    {d} | {bk_v[j, 0]:>8.2f}€ | {bk_v[j, 2]}")
                 total_anomalies += bk_v[j, 0]
 
         # --- Conclusion ---
@@ -763,13 +763,13 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         df_512   = gl_clean[mask_512].copy()
 
         # 1. ENCAISSEMENTS — Débit 512 (compta) vs Crédit banque
-        r.append("--- ENCAISSEMENTS (Paiements copropriétaires, etc.) ---\n")
+        r.append("--- A. ENCAISSEMENTS (Paiements copropriétaires, etc.) ---\n")
         gl_e = df_512[df_512['DEBIT'] > 0.001].copy()
         bk_e = bk_clean[bk_clean['CREDIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_e, bk_e, "Encaissements", "Banque", "DEBIT", "CREDIT")
 
         # 2. DÉCAISSEMENTS — Crédit 512 (compta) vs Débit banque
-        r.append("\n--- DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---\n")
+        r.append("\n--- B. DÉCAISSEMENTS (Paiements fournisseurs, etc.) ---\n")
         gl_d = df_512[df_512['CREDIT'] > 0.001].copy()
         bk_d = bk_clean[bk_clean['DEBIT'] > 0.001].copy()
         effectuer_rapprochement_complet(gl_d, bk_d, "Décaissements", "Banque", "CREDIT", "DEBIT")
