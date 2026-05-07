@@ -28,8 +28,8 @@ UPLOAD_DIR = "storage_compta"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-#GEMINI_MODEL="gemini-2.5-flash"
-GEMINI_MODEL="gemini-2.5-flash-lite"
+GEMINI_MODEL="gemini-2.5-flash"
+#GEMINI_MODEL="gemini-2.5-flash-lite"
 
 NB_RELEVES_BANCAIRES = 1    #METTRE 12 POUR UNE PERIODE ANNUELLE EN PRODUCTION!!!!!!!!!!!!!!!!!!!!!
 
