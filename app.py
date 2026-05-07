@@ -1011,15 +1011,15 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         r.append(f"Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
         r.append(f"Ratio anomalies / budget        : {ratio:>12.0f} %")
         if ratio < 0.5:
-            r.append("Appréciation : Pas anomalie significative (< 0.5% du budget).")
-        elif ratio < 1.5:
-            r.append("Appréciation : Anomalies mineures (0.5% à 1.5% du budget).")
-        elif ratio < 3:
-            r.append("Appréciation : Anomalies notables (1.5% à 3% du budget). Vérifications recommandées.")
+            r.append("Appréciation : Ecarts non-matériels (< 0.5% du budget).")
+        elif ratio < 2:
+            r.append("Appréciation : Anomalies mineures (0.5% à 2% du budget).")
         elif ratio < 5:
-            r.append("Appréciation : Anomalies significatives (3% à 5% du budget). Contrôles approfondis nécessaires.")
+            r.append("Appréciation : Points de vigilance notables (2% à 5% du budget). Vérifications recommandées.")
+        elif ratio < 10:
+            r.append("Appréciation : Anomalies significatives (5% à 10% du budget). Contrôles approfondis nécessaires.")
         else:
-            r.append("Appréciation : Anomalies très importantes (> 5% du budget). Action immédiate requise.")    
+            r.append("Appréciation : Anomalies majeures (> 10% du budget). Actions immédiates requises.")    
     else:
         r.append("Impossible de calculer le ratio : aucun appel de fonds (compte 701xxx) détecté.")
         r.append(f"Total des anomalies détectées : {total_anomalies:.2f} EUR")
@@ -1274,11 +1274,6 @@ with col_texte:
             Chargez vos documents en toute confidentialité et obtenez instantanément un rapport simple et détaillé.
         </p>
     """, unsafe_allow_html=True)
-
-    
-    #st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 0;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
-    #st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;">Votre expert digital indépendant : simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
-    #st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0;"><i>La comptabilité de copropriété est complexe et ses documents souvent denses. Pourtant, chaque ligne du Grand Livre compte. Pour les conseils syndicaux, l'analyse manuelle de centaines de pages est une mission laborieuse. Nous mettons à votre disposition un assistant numérique performant pour simplifier votre analyse. Chargez vos documents en toute confidentialité et obtenez instantanément un rapport clair.</i></h3>', unsafe_allow_html=True)
 
 with col_logo:
     # On affiche le logo à droite
