@@ -491,7 +491,8 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                                                 else pd.Timestamp.min):
                     dg = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                     r.append(f"   - {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
-            r.append(f"\")
+            r.append(\n")
+                     
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
         if absent_banque:
