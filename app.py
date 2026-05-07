@@ -80,8 +80,9 @@ def convert_pdf_to_excel(pdf_path):
             Si les colonnes CODE_JOURNAL (JNL) ou CONTREPARTIE ne sont pas disponibles, laisse les vides.
             Mets les en-têtes des colonnes NUMERO_COMPTE | NOM_COMPTE | DATE | PIECE | CODE_JOURNAL_(JNL) | CONTREPARTIE | LIBELLE | DEBIT | CREDIT en première ligne.
             Les dates doivent être au format date JJ/MM/AAAA.
-            Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
-            Fais très attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
+            Fais attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
+            Pour être certain d'avoir correctement identifié les colonnes DEBIT et CREDIT, compare si possible pour chaque compte la variation des SOLDES avec la somme des DEBIT et des CREDIT.
+            Fais attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
             Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Le séparateur de décimales doient être un point. Les nombres doivent être au format numérique.
             Les écritures dont le libellé est 'Report' ou 'Report a nouveau' ou 'A nouveau' en début de bloc doivent être identifiées le cas échéant par AN dans la colonne CODE JOURNAL (JNL).
             Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec les clés suivantes : NUMERO_COMPTE, NOM_COMPTE, DATE (JJ/MM/AAAA), PIECE, CODE_JOURNAL, CONTREPARTIE, LIBELLE, DEBIT, CREDIT. N'affiche aucun texte avant ou après le JSON."""
@@ -146,8 +147,9 @@ def extract_releve_data(pdf_path):
                         Continuité : Identifie les tableaux scindés par des sauts de page et fusionne-les de manière fluide sans répéter les en-têtes. N'affiche aucun ligne de total.
                         Analyse de position : Identifie rigoureusement la position horizontale des colonnes. Si une valeur est sous l'en-tête DEBIT, elle doit rester dans la colonne DEBIT. Utilise tes capacités de vision pour tracer une ligne verticale imaginaire entre la colonne DEBIT et CREDIT: ne mélange jamais les deux.
                         Une ligne ne peut avoir qu'un seul montant (soit débit, soit crédit). L'autre doit être 0.00.
-                        Fais très attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
-                        Fais très attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
+                        Fais attention à bien identifier le libellé de la colonne associée à chaque donnée en t'appuyant sur l'alignement vertical de toutes les données appartenant à une même colonne.
+                        Pour être certain d'avoir correctement identifié les colonnes DEBIT et CREDIT, vérifie que SOLDE FINAL = SOLDE INITIAL + Somme des CREDIT - Somme des DEBIT
+                        Fais attention à ne pas décaler les données d'une ligne sur la ligne inférieure ou la ligne supérieure. 
                         Nettoyage : Supprime les symboles monétaires (€, $) et les séparateurs de milliers. Les nombres doivent être au format 1234.56.
                         Format de date : Utilise le format JJ/MM/AAAA.
                         SORTIE : Réponds EXCLUSIVEMENT sous forme d'une liste JSON d'objets avec ces clés :
