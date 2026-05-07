@@ -299,7 +299,6 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
     
     r.append(f"RAPPORT D'AUDIT COMPTABLE - GÉNÉRÉ LE {datetime.now().strftime('%d/%m/%Y')}")
     r.append(f"Période analysée du {date_min.strftime('%d/%m/%Y')} au {date_ref.strftime('%d/%m/%Y')}")
-    r.append("="*79 + "\n")
 
     # --- BUDGET ET COMPTEUR D'ANOMALIES ---
     total_anomalies = 0.0
@@ -540,6 +539,13 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         mask_512 = gl_clean['NUMERO_COMPTE'].astype(str).str.startswith('512')
         df_512   = gl_clean[mask_512].copy()
 
+        # --- AJOUT DU FILTRE ANTI-REPORT À NOUVEAU ---
+        # On définit les conditions : Libellé contient "report" ET date est le 01/01
+        mask_report = (df_512['LIBELLE'].str.contains('report', case=False, na=False) & (df_512['DATE'].dt.month == 1) & (df_512['DATE'].dt.day == 1))
+        # On ne garde que ce qui n'est PAS un report à nouveau
+        df_512 = df_512[~mask_report]
+        # ----------------------------------------------
+
         # 1. ENCAISSEMENTS — Débit 512 (compta) vs Crédit banque
         r.append("--- A. ENCAISSEMENTS (Paiements copropriétaires, etc.) ---\n")
         gl_e = df_512[df_512['DEBIT'] > 0.001].copy()
@@ -558,6 +564,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
 
     
     # --- SECTION B : TROP-PAYÉS ---
+    r.append("\n" + "="*79)
     r.append("[SECTION B] ANALYSE DES TROP-PAYÉS")
     r.append("Ce contrôle identifie les fournisseurs dont le solde est débiteur. Cela révèle des factures payées plusieurs fois ou des avoirs non récupérés, représentant une trésorerie perdue pour la copropriété.\n")
     if 'NUMERO_COMPTE' in df_gl.columns:
@@ -599,7 +606,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             r.append(f"{len(doublons)} lignes suspectes ({len(doublons)//2} paires ou plus).")
             r.append("-" * 79)
             # En-tête du petit tableau
-            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
+            r.append(f"{'Compte':<12} | {'Date':<10} | {'Montant':>14} | {'Libellé'}")
             r.append("-" * 79)
             
             for _, row in doublons.iterrows():
@@ -609,7 +616,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                 montant = row['DEBIT']
                 libelle = str(row['LIBELLE'])[:40] # Tronqué pour l'alignement
                 
-                r.append(f"{compte:<10} | {date_str:<12} | {montant:>10.2f}€ | {libelle}")
+                r.append(f"{compte:<12} | {date_str:<10} | {montant:>10.2f}€ | {libelle}")
             
             r.append("-" * 79)
             total_anomalies += doublons['DEBIT'].sum() / 2
@@ -655,7 +662,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         if alertes_impayes:
             # En-tête formaté avec Libellé
             # Note : On élargit le séparateur à 100 ou plus pour accommoder le texte
-            r.append(f"{'Compte':<10} | {'Date':<12} | {'Montant':>10} | {'Libellé'}")
+            r.append(f"{'Compte':<12} | {'Date':<10} | {'Montant':>14} | {'Libellé'}")
             r.append("-" * 79)
             
             # Affichage de toutes les alertes
