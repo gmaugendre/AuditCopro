@@ -491,7 +491,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
                                                 else pd.Timestamp.min):
                     dg = gl_v[i, 1].strftime('%d/%m/%Y') if pd.notnull(gl_v[i, 1]) else "N/A"
                     r.append(f"      - {dg} | {gl_v[i, 0]:>8.2f}€ | {gl_v[i, 2][:40]}")
-            #r.append(f"\n")
+            #r.append(f"")
                      
         # --- Anomalies résiduelles : présence compta / absence banque ---
         absent_banque = [i for i in range(n) if i not in gl_matched_idx]
@@ -830,7 +830,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
             montant_rej = rej['DEBIT']
             
             if pd.notnull(date_rej):
-                # On cherche en compta un montant identique dans les 60 jours suivant le rejet bancaire
+                # On cherche en comptabilité un montant identique dans les 60 jours suivant le rejet bancaire
                 match = df_450[
                     (abs(df_450['DEBIT'] - montant_rej) < 0.05) & 
                     (df_450['DATE'] >= date_rej) & 
