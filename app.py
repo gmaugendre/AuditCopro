@@ -1000,7 +1000,7 @@ def generer_rapport_audit(df_gl, df_bank, df_contrat):
         ratio = (total_anomalies / budget) * 100
         r.append(f"Budget (appels de fonds 701xxx) : {budget:>12.0f} EUR")
         r.append(f"Total des anomalies détectées   : {total_anomalies:>12.0f} EUR")
-        r.append(f"Ratio anomalies / budget        : {ratio:>11.0f}%")
+        r.append(f"Ratio anomalies / budget        : {ratio:>12.0f} %")
         if ratio < 0.25:
             r.append("Appréciation : Aucune anomalie significative (< 0.25% du budget).")
         elif ratio < 1:
@@ -1368,6 +1368,7 @@ with col2:
                 - N'utilise aucun emoji ni symbole Unicode spécial. 
                 - Utilise uniquement des caractères ASCII standard (lettres, chiffres, ponctuation classique). 
                 - N'utilise ni gras, ni italique, ni mise en forme complexe.
+                - N'utilise jamais de balises Markdown comme les astérisques pour le gras ou l'italique.
                 """
   
                 # --- GÉNÉRATION DU PDF DE SYNTHÈSE ---
