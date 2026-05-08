@@ -1302,7 +1302,7 @@ elif nb_fichiers > 12:
     st.error(f"🚫 Trop de fichiers : vous avez importé {nb_fichiers} relevés au lieu de 12.")
 
 # --- Sécurité anti-doublons (noms et tailles) ---
-fichiers_doublons = False
+fichiers_doublons = False """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 if releves_files:
     noms = [f.name for f in releves_files]
     tailles = [f.size for f in releves_files]
@@ -1311,7 +1311,7 @@ if releves_files:
         fichiers_doublons = True
     elif len(tailles) != len(set(tailles)):
         st.error(" Doublon détecté : certains fichiers ont la même taille (contenu probablement identique).")
-        fichiers_doublons = True
+        fichiers_doublons = True """
 
 with col2:
     st.markdown("### 2. Traitement & analyse")
