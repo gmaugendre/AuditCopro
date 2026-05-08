@@ -1262,7 +1262,7 @@ with col_texte:
     st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 5px;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
     
     # Sous-titre accrocheur (H3)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0; margin-bottom: 20px;">Votre expert digital: indépendant, simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0; margin-bottom: 20px;">Votre expert digital : indépendant, simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
     
     # Corps de texte (Paragraphe p) - Plus lisible sans l'italique total
     st.markdown(f"""
@@ -1283,7 +1283,7 @@ with col_logo:
     with open("Exemple_Rapport.pdf", "rb") as f:
         pdf_exemple = f.read()
     st.download_button(label="📄         Spécimen de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
-    st.video("https://www.youtube.com/watch?v=1yWW9CkiYSs") #("https://youtube.com/shorts/1yWW9CkiYSs?is=u-HF6ndr5VWM1ghW")
+    st.video("https://youtu.be/WeKsF7RJySk?is=pu2NddI7vooNv4h1")
     
 st.markdown("---")
 
