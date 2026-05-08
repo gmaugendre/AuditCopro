@@ -1261,7 +1261,7 @@ with col_texte:
     st.markdown(f'<h1 style="color: rgb{NAVY}; margin-bottom: 5px;">Comptes de copropriété : reprenez le contrôle !</h1>', unsafe_allow_html=True)
     
     # Sous-titre accrocheur (H3)
-    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0; margin-bottom: 20px;">Votre expert digital indépendant : simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: rgb{OR}; margin-top: 0; margin-bottom: 20px;">Votre expert digital: indépendant, simple, automatique et immédiat.</h3>', unsafe_allow_html=True)
     
     # Corps de texte (Paragraphe p) - Plus lisible sans l'italique total
     st.markdown(f"""
