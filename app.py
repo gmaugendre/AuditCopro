@@ -1310,6 +1310,7 @@ if releves_files:
         st.error(" Doublon détecté : certains fichiers portent le même nom.")
         fichiers_doublons = True
     elif len(tailles) != len(set(tailles)):
+        xxxxx=1
         #st.error(" Doublon détecté : certains fichiers ont la même taille (contenu probablement identique).")
         #fichiers_doublons = True
 
