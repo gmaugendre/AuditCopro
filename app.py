@@ -1282,7 +1282,8 @@ with col_logo:
     with open("Exemple_Rapport.pdf", "rb") as f:
         pdf_exemple = f.read()
     st.download_button(label="📄         Spécimen de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
-
+    st.video(https://youtube.com/shorts/1yWW9CkiYSs?is=u-HF6ndr5VWM1ghW)
+    
 st.markdown("---")
 
 # --- CHARGEMENT DES DONNEES ---
