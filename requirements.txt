@@ -10,3 +10,4 @@ reportlab
 pypdf
 matplotlib
 json-repair
+st-gsheets-connection
