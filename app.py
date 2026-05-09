@@ -1343,10 +1343,10 @@ with col2:
             #----- Ajout d'un log dans une feuille Google Sheets ------
             try:            
                 conn = st.connection("gsheets", type=GSheetsConnection)
-                df_existant = conn.read(spreadsheet=st.secrets["SPREADSHEET_URL"], ttl=0) 
+                df_existant = conn.read(ttl=0)
                 nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Action": "cliqueRun"}])
                 df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
-                conn.update(spreadsheet=st.secrets["SPREADSHEET_URL"], data=df_final)
+                conn.update(data=df_final)
             except Exception as e:
                 st.error(f"Erreur lors de l'ajout du log : {e}")            
             #----------------------------------------------------------
