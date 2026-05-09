@@ -1348,7 +1348,8 @@ with col2:
                 df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
                 conn.update(data=df_final)
             except Exception as e:
-                st.error(f"Erreur lors de l'ajout du log : {e}")            
+                st.error(f"Erreur lors de l'ajout du log : {e}")
+                st.text(traceback.format_exc())
             #----------------------------------------------------------
             
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
