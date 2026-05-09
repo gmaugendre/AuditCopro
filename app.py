@@ -1295,7 +1295,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("### 1. Import des documents (exercice N-1)")
     gl_file = st.file_uploader("GRAND LIVRE COMPTABLE (PDF)", type="pdf")
-    releves_files = st.file_uploader("12 RELEVES BANCAIRES MENSUELS (PDF)", type="pdf", accept_multiple_files=True)
+    releves_files = st.file_uploader("12 RELEVES BANCAIRES MENSUELS (PDF) (même période que le Grand livre)", type="pdf", accept_multiple_files=True)
     contrat_file = st.file_uploader("CONTRAT DU SYNDIC (PDF)", type="pdf")
 
 # --- Saisie des 12 relevés de compte ---
