@@ -1341,11 +1341,14 @@ with col2:
         if st.button("Générer le rapport d'analyse", type="primary"):
 
             #----- Ajout d'un log dans une feuille Google Sheets ------
-            conn = st.connection("gsheets", type=GSheetsConnection)
-            df_existant = conn.read(ttl=0) 
-            nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Action": "cliqueRun"}])
-            df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
-            conn.update(data=df_final)
+            try:            
+                conn = st.connection("gsheets", type=GSheetsConnection)
+                df_existant = conn.read(spreadsheet=st.secrets["SPREADSHEET_URL"], ttl=0) 
+                nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Action": "cliqueRun"}])
+                df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
+                conn.update(spreadsheet=st.secrets["SPREADSHEET_URL"], data=df_final)
+            except Exception as e:
+                st.error(f"Erreur lors de l'ajout du log : {e}")            
             #----------------------------------------------------------
             
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
