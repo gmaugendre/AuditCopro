@@ -1619,7 +1619,7 @@ with col2:
         st.info("Charger tous les documents avant de lancer le traitement ...")
  
 st.markdown("---")
-st.caption(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
+st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement ; nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com) ou de vive voix (+33 6 14 29 80 29)).")
 st.caption(" ###### Disclaimer : Cette application est un assistant digital conçu pour accompagner les Conseils syndicaux dans leur mission d'analyse et de contrôle des comptes de copropriété. Elle ne se substitue en aucun cas au pouvoir de contrôle des membres du Conseil syndical ni à l'expertise comptable du Syndic. Les éléments présentés dans le rapport d'analyse sont des pistes d'investigation qui peuvent comporter des erreurs de lecture automatisée, d'interprétation technique et doivent faire l'objet d'une vérification contradictoire, de contrôles sur pièces ainsi que de discussions avec le teneur de comptes.")
 st.caption(" ###### Protection des données : aucune donnée n'est conservée ; tous les fichiers restent confidentiels et sont intégralement supprimés dés la fin du traitement ; aucun rapport n'est enregistré.")
 st.caption(" ###### Tous droits réservés.")
