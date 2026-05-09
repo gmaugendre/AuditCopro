@@ -21,6 +21,7 @@ import re
 import time
 import traceback
 import random
+from streamlit_gsheets import GSheetsConnection
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Audit Compta Automatisé", layout="wide")
@@ -1338,6 +1339,15 @@ with col2:
                 st.session_state[key] = None
  
         if st.button("Générer le rapport d'analyse", type="primary"):
+
+            #----- Ajout d'un log dans une feuille Google Sheets ------
+            conn = st.connection("gsheets", type=GSheetsConnection)
+            df_existant = conn.read(ttl=0) 
+            nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Action": "cliqueRun"}])
+            df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
+            conn.update(data=df_final)
+            #----------------------------------------------------------
+            
             with st.status("🚀 Initialisation de l'audit...", expanded=True) as status:
                 progress_bar = st.progress(15)
  
