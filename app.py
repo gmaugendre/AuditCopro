@@ -1284,7 +1284,7 @@ with col_logo:
 
     with open("Exemple_Rapport.pdf", "rb") as f:
         pdf_exemple = f.read()
-    st.download_button(label="📄         Spécimen de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
+    st.download_button(label="📄 Spécimen de rapport", data=pdf_exemple, file_name="Exemple_Rapport.pdf", mime="application/pdf", use_container_width=True)
     st.video("https://youtu.be/WeKsF7RJySk?is=pu2NddI7vooNv4h1")
     
 st.markdown("---")
@@ -1344,7 +1344,7 @@ with col2:
             try:            
                 conn = st.connection("gsheets", type=GSheetsConnection)
                 df_existant = conn.read(ttl=0)
-                nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Cle_API": API_KEY}])
+                nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Cle_API": API_KEY[:20]}])
                 df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
                 conn.update(data=df_final)
             except Exception as e:
