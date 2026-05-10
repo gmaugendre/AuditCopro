@@ -1621,7 +1621,7 @@ with col2:
 st.markdown("---")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement. Nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29) ou via ce formulaire:")
 # --- Saisie de commentaires ---
-commentaire_user = st.text_input(placeholder="Utiliseriez-vous cet assistant pour contrôler vos comptes ?\nQuelles autres fonctions souhaiteriez-vous (graphiques illustrant la situation financière de votre copropriété, benchmarking de vos charges etc.) ? Laissez-nous un e-mail si vous le souhaitez !")
+commentaire_user = st.text_input("Saisissez vos commentaires", placeholder="Utiliseriez-vous cet assistant pour contrôler vos comptes ?\nQuelles autres fonctions souhaiteriez-vous (graphiques illustrant la situation financière de votre copropriété, benchmarking de vos charges etc.) ? Laissez-nous un e-mail si vous le souhaitez !")
 if st.button("Enregistrer"):
     if commentaire_user:
         try:
