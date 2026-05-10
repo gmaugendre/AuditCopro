@@ -1355,7 +1355,7 @@ with col2:
                 progress_bar = st.progress(15)
  
                 # Lecture Grand Livre
-                status.update(label="📄 Lecture du Grand livre... Allons consulter les Archives Royales de Syldavie !", expanded=True)
+                status.update(label="📄 Lecture du Grand livre... Allons consulter les Archives royales de Syldavie !", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
 
@@ -1372,7 +1372,7 @@ with col2:
                 progress_bar.progress(60)
  
                 # Lecture contrat
-                status.update(label="⚖️ Analyse du contrat du syndic... On vérifie que Séraphin Lampion ne nous a pas glissé une option inutile !", expanded=True)
+                status.update(label="⚖️ Analyse du contrat du syndic... Séraphin Lampion nous aurait-il glissé une option inutile ?", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
                 progress_bar.progress(75)
  
