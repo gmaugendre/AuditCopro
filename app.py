@@ -1621,7 +1621,12 @@ with col2:
 st.markdown("---")
 st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement. Nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29) ou via ce formulaire:")
 # --- Saisie de commentaires ---
-commentaire_user = st.text_input("Saisissez vos commentaires", placeholder="Utiliseriez-vous cet assistant pour contrôler vos comptes ?\nQuelles autres fonctions souhaiteriez-vous (graphiques illustrant la situation financière de votre copropriété, benchmarking de vos charges etc.) ? Laissez-nous un e-mail si vous le souhaitez !")
+commentaire_user = st.text_input(
+    "Saisissez vos commentaires", 
+    placeholder="Ex: Oui, j'aimerais des graphiques (répartition des charges par catégorie etc.)",
+    help="Utiliseriez-vous cet assistant pour contrôler vos comptes ?\n\n Comment pourrions-nous vous faciliter vos interactions avec votre syndic ?\n\n Quelles autres fonctions souhaiteriez-vous (graphiques, benchmarking) ? \n\n Laissez-nous un e-mail !"
+)
+
 if st.button("Enregistrer"):
     if commentaire_user:
         try:
@@ -1630,7 +1635,7 @@ if st.button("Enregistrer"):
             nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Commentaire": commentaire_user}])            
             df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
             conn.update(data=df_final)            
-            st.success("Merci !")
+            st.success("Merci pour votre feedback !")
         except Exception as e:
             st.error(f"Erreur : {e}")
 
