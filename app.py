@@ -1344,7 +1344,7 @@ with col2:
             try:            
                 conn = st.connection("gsheets", type=GSheetsConnection)
                 df_existant = conn.read(ttl=0)
-                nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "Cle_API": f"Cle_API_{API_KEY[:20]}"}])
+                nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "Run_Cle_API": f"Cle_API_{API_KEY[:20]}"}])
                 df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
                 conn.update(data=df_final)
             except Exception as e:
