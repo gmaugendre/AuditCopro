@@ -1626,7 +1626,7 @@ commentaire_user = st.text_input(
     placeholder="J'aimerais des graphiques (répartition des charges par catégorie etc.). Paul.Durand@ResidenceDuParc.fr",
     help="La sincérité des comptes est-elle un sujet de préoccupation pour votre copropriété ?\n\n Utiliseriez-vous cet assistant pour vous aider à contrôler vos comptes ?\n\n Quelles autres fonctionalités souhaiteriez-vous (graphiques, benchmarking) ? Etc. \n\n Laissez-nous un e-mail !"
 )
-if st.button("Enregistrer"):
+if st.button("Envoyer"):
     if commentaire_user:
         try:
             conn = st.connection("gsheets", type=GSheetsConnection)
