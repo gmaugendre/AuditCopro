@@ -1561,7 +1561,7 @@ with col2:
                 st.session_state["contrat_df"] = contrat_df
  
                 progress_bar.progress(100)
-                status.update(label=" Cà y est !", state="complete", expanded=False)
+                status.update(label="Et voilà !", state="complete", expanded=False)
  
         # ── AFFICHAGE DES RÉSULTATS ── hors du if st.button(), même niveau que lui
         if st.session_state.get("pdf_synthese"):
