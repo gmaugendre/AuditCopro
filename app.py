@@ -1619,11 +1619,11 @@ with col2:
         st.info("Charger tous les documents avant de lancer le traitement ...")
  
 st.markdown("---")
-st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement.\n Nous vous invitons à nous partager en retour vos commentaires par e-mail (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29), ou via ce formulaire:")
+st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement. Nous vous invitons à nous partager en retour vos commentaires par e-mail (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29), ou via ce formulaire:")
 # --- Saisie de commentaires ---
 commentaire_user = st.text_input(
     "Saisissez vos commentaires", 
-    placeholder="Ex: Oui, j'aimerais des graphiques (répartition des charges par catégorie etc.). Paul.Durand@ResidenceDuParc.fr",
+    placeholder="J'aimerais des graphiques (répartition des charges par catégorie etc.). Paul.Durand@ResidenceDuParc.fr",
     help="La sincérité des comptes est-elle un sujet de préoccupation pour votre copropriété ?\n\n Utiliseriez-vous cet assistant pour vous aider à contrôler vos comptes ?\n\n Quelles autres fonctionalités souhaiteriez-vous (graphiques, benchmarking) ? Etc. \n\n Laissez-nous un e-mail !"
 )
 if st.button("Enregistrer"):
