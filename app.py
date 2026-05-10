@@ -1619,7 +1619,7 @@ with col2:
         st.info("Charger tous les documents avant de lancer le traitement ...")
  
 st.markdown("---")
-st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement. Nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par écrit (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29) ou via ce formulaire:")
+st.markdown(" ###### Il s'agit d'un prototype mis à disposition gratuitement. Nous vous invitons à nous partager en retour votre expérience en tant qu'utilisateur (pertinence de l'analyse, besoins complémentaires etc.), par e-mail (gael_maugendre@hotmail.com), de vive voix (+33 6 14 29 80 29) ou via ce formulaire:")
 # --- Saisie de commentaires ---
 commentaire_user = st.text_input(
     "Saisissez vos commentaires", 
