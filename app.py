@@ -1355,7 +1355,7 @@ with col2:
                 progress_bar = st.progress(15)
  
                 # Lecture Grand Livre
-                status.update(label="📄 Lecture du Grand livre... Allons consulter les Archives royales de Syldavie !", expanded=True)
+                status.update(label="📄 Lecture du Grand livre... Veuillez patienter.", expanded=True)
                 gl_path = save_uploaded_file(gl_file, "gl")
                 gl_df = convert_pdf_to_excel(gl_path)
 
@@ -1367,12 +1367,12 @@ with col2:
  
                 # Fusion et lecture des relevés bancaires
                 merged_bank_path = merge_pdfs(releves_files, "rb")
-                status.update(label="🏦 Lecture des relevés bancaires... Vite, les sous-sols du château de Moulinsart !", expanded=True)
+                status.update(label="🏦 Lecture des relevés bancaires... Cà avance !", expanded=True)
                 bank_df = extract_releve_data(merged_bank_path)
                 progress_bar.progress(60)
  
                 # Lecture contrat
-                status.update(label="⚖️ Analyse du contrat du syndic... Séraphin Lampion nous aurait-il glissé une option inutile ?", expanded=True)
+                status.update(label="⚖️ Analyse du contrat du syndic... Encore un peu de patience !", expanded=True)
                 contrat_df = extraire_grille_tarifaire_universelle(contrat_file)
                 progress_bar.progress(75)
  
@@ -1382,7 +1382,7 @@ with col2:
                 progress_bar.progress(80)
  
                 # Génération synthèse IA
-                status.update(label="✍️ Rédaction de la synthèse... Demandez l'édition spéciale du Petit Vingtième !", expanded=True)
+                status.update(label="✍️ Rédaction de la synthèse... On y est presque !", expanded=True)
  
                 prompt_complet = f"""
                 Tu es un auditeur spécialisé en copropriété. Ton objectif est de rédiger 
