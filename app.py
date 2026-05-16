@@ -1342,7 +1342,7 @@ with col2:
 
             #----- Ajout d'un log dans une feuille Google Sheets ------
             try:            
-                conn = st.connection("gsheets", type=GSheetsConnection)
+                conn = st.connection("gsheets", type=GSheetsConnection, gcp_service_account=st.secrets["gcp_service_account"])
                 df_existant = conn.read(ttl=0)
                 nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "Cle_API": f"Run_Cle_API_{API_KEY[:20]}"}])
                 df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
