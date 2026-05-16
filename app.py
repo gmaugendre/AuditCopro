@@ -1629,7 +1629,7 @@ commentaire_user = st.text_input(
 if st.button("Envoyer"):
     if commentaire_user:
         try:
-            conn = st.connection("gsheets", type=GSheetsConnection)
+            conn = st.connection("gsheets", type=GSheetsConnection, gcp_service_account=st.secrets["gcp_service_account"])
             df_existant = conn.read(ttl=0)
             nouvelle_ligne = pd.DataFrame([{"Date_Heure": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),"Commentaire": commentaire_user}])            
             df_final = pd.concat([df_existant, nouvelle_ligne], ignore_index=True)
