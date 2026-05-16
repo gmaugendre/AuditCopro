@@ -35,8 +35,8 @@ GEMINI_MODEL="gemini-2.5-flash"
 
 NB_RELEVES_BANCAIRES = 12    #METTRE 12 POUR UNE PERIODE ANNUELLE EN PRODUCTION!!!!!!!!!!!!!!!!!!!!!
 
-API_KEY = st.secrets["GEMINI_API_KEY2"]
-#API_KEY = st.secrets[random.choice(["GEMINI_API_KEY1", "GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY4"])]    #Sélection aléatoire d'une clé à chaque exécution/chargement
+#API_KEY = st.secrets["GEMINI_API_KEY1"]
+API_KEY = st.secrets[random.choice(["GEMINI_API_KEY1", "GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY4"])]    #Sélection aléatoire d'une clé à chaque exécution/chargement
 client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 THRESHOLD_FUZZ = 85
