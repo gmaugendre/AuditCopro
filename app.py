@@ -41,7 +41,7 @@ client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1beta'})
 
 THRESHOLD_FUZZ = 85
 
-#POUR PATIENTER SI GEMINI EST EN PERIODE DE FORTE AFFLUENCE
+#POUR PATIENTER SI LE MOTEUR IA EST EN PERIODE DE FORTE AFFLUENCE
 MAX_RETRIES = 3 #Nombre d'essais en tout pour chaque appel IA
 WAIT_MINUTES = 2 #Temps d'attente avant ré-essai en minutes
 
@@ -131,7 +131,8 @@ def convert_pdf_to_excel(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    #st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique...")
                     time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -200,7 +201,8 @@ def extract_releve_data(pdf_path):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    #st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique...")
                     time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -281,7 +283,8 @@ def extraire_grille_tarifaire_universelle(uploaded_file):
                 st.stop()
             elif "503" in str(e):
                 if attempt < MAX_RETRIES - 1:
-                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    #st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                    st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique...")
                     time.sleep(WAIT_MINUTES * 60)
                 else:
                     st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
@@ -1432,7 +1435,8 @@ with col2:
                             st.stop()
                         elif "503" in str(e):
                             if attempt < MAX_RETRIES - 1:
-                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                                #st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique dans {WAIT_MINUTES} minute(s)... (essai {attempt + 1}/{MAX_RETRIES})")
+                                st.warning(f"⏳ FORTE AFFLUENCE sur le moteur, nouvelle tentative automatique...")
                                 time.sleep(WAIT_MINUTES * 60)
                             else:
                                 st.error("🚨 ACTIVITÉ EXCEPTIONNELLE : Le moteur a atteint ses limites de capacité en raison d'une forte affluence. Réessayez plus tard.")
